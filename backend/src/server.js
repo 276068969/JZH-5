@@ -117,6 +117,36 @@ function withTrend(values) {
   return { latest, delta: latest - previous, values };
 }
 
+function aggregateObservations(observations, key) {
+  const groups = new Map();
+  for (const obs of observations) {
+    const groupKey = obs[key];
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, {
+        name: groupKey,
+        totalCount: 0,
+        recordCount: 0,
+        lastReportedAt: null
+      });
+    }
+    const group = groups.get(groupKey);
+    group.totalCount += Number(obs.count) || 0;
+    group.recordCount += 1;
+    if (!group.lastReportedAt || obs.recordedAt > group.lastReportedAt) {
+      group.lastReportedAt = obs.recordedAt;
+    }
+  }
+  return Array.from(groups.values()).sort((a, b) => b.totalCount - a.totalCount);
+}
+
+function getObservationStatistics(observations) {
+  return {
+    bySpecies: aggregateObservations(observations, "species"),
+    byRoute: aggregateObservations(observations, "route"),
+    byLocation: aggregateObservations(observations, "location")
+  };
+}
+
 async function handleApi(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const data = readStore();
@@ -172,6 +202,13 @@ async function handleApi(req, res) {
       alert.updatedAt = new Date().toISOString();
       writeStore(data);
       return sendJson(res, 200, { alert });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/observations/statistics") {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const statistics = getObservationStatistics(data.observations);
+      return sendJson(res, 200, { statistics });
     }
 
     if (req.method === "GET" && url.pathname === "/api/observations") {
