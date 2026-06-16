@@ -36,9 +36,81 @@
     { "id": "ST-104", "name": "黄河三角洲声纹站", "status": "online", "temperature": 25, "humidity": 70, "battery": 82 }
   ],
   "alerts": [
-    { "id": "AL-001", "level": "高", "title": "核心停歇地出现异常低空无人机", "area": "青海湖鸟岛站", "status": "processing", "createdAt": "2026-06-11T02:10:00.000Z" },
-    { "id": "AL-002", "level": "中", "title": "潮间带游客密度超过阈值", "area": "黄渤海潮间带", "status": "open", "createdAt": "2026-06-11T03:30:00.000Z" },
-    { "id": "AL-003", "level": "低", "title": "红外相机电量偏低", "area": "鄱阳湖南矶站", "status": "resolved", "createdAt": "2026-06-10T09:24:00.000Z" }
+    {
+      "id": "AL-001",
+      "level": "高",
+      "title": "核心停歇地出现异常低空无人机",
+      "area": "青海湖鸟岛站",
+      "status": "processing",
+      "createdAt": "2026-06-11T02:10:00.000Z",
+      "handler": "保护站巡护员",
+      "updatedAt": "2026-06-11T04:20:00.000Z",
+      "remark": "已联系当地空管部门核实飞行计划，正在追踪无人机来源，已增派现场巡护人员加强警戒。",
+      "history": [
+        {
+          "status": "open",
+          "handler": "监管中心管理员",
+          "remark": "告警已创建，待分配巡护员处理。",
+          "timestamp": "2026-06-11T02:10:00.000Z"
+        },
+        {
+          "status": "processing",
+          "handler": "保护站巡护员",
+          "remark": "已联系当地空管部门核实飞行计划，正在追踪无人机来源，已增派现场巡护人员加强警戒。",
+          "timestamp": "2026-06-11T04:20:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "AL-002",
+      "level": "中",
+      "title": "潮间带游客密度超过阈值",
+      "area": "黄渤海潮间带",
+      "status": "open",
+      "createdAt": "2026-06-11T03:30:00.000Z",
+      "handler": null,
+      "updatedAt": "2026-06-11T03:30:00.000Z",
+      "remark": null,
+      "history": [
+        {
+          "status": "open",
+          "handler": "监管中心管理员",
+          "remark": "告警已创建，待分配巡护员处理。",
+          "timestamp": "2026-06-11T03:30:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "AL-003",
+      "level": "低",
+      "title": "红外相机电量偏低",
+      "area": "鄱阳湖南矶站",
+      "status": "resolved",
+      "createdAt": "2026-06-10T09:24:00.000Z",
+      "handler": "保护站巡护员",
+      "updatedAt": "2026-06-10T14:50:00.000Z",
+      "remark": "已更换备用电池，设备恢复正常运行，后续将纳入定期巡检清单。",
+      "history": [
+        {
+          "status": "open",
+          "handler": "监管中心管理员",
+          "remark": "告警已创建，待分配巡护员处理。",
+          "timestamp": "2026-06-10T09:24:00.000Z"
+        },
+        {
+          "status": "processing",
+          "handler": "保护站巡护员",
+          "remark": "已赶赴现场，正在准备更换电池。",
+          "timestamp": "2026-06-10T11:30:00.000Z"
+        },
+        {
+          "status": "resolved",
+          "handler": "保护站巡护员",
+          "remark": "已更换备用电池，设备恢复正常运行，后续将纳入定期巡检清单。",
+          "timestamp": "2026-06-10T14:50:00.000Z"
+        }
+      ]
+    }
   ],
   "observations": [
     { "id": "OBS-001", "species": "黑脸琵鹭", "count": 126, "location": "崇明东滩", "route": "西太平洋沿海路线", "observer": "保护站巡护员", "recordedAt": "2026-06-11T01:12:00.000Z" },

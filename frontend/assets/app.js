@@ -145,15 +145,44 @@ function bindFilterEvents() {
   $("#resetFilters").addEventListener("click", resetFilters);
 }
 
+function statusLabel(status) {
+  return { open: "待处理", processing: "处理中", resolved: "已闭环" }[status] || status;
+}
+
 function renderAlert(alert) {
+  const latestRemark = alert.remark ? alert.remark.length > 60 ? alert.remark.slice(0, 60) + "…" : alert.remark : null;
+  const latestHandler = alert.handler || null;
+  const latestUpdate = alert.updatedAt ? fmtTime(alert.updatedAt) : null;
+
   return `
-    <article class="list-item">
-      <strong>${alert.title}</strong>
-      <p>
-        <span class="tag ${alert.status}">${alert.status}</span>
+    <article class="list-item alert-list-item">
+      <div class="alert-list-header">
+        <strong>${alert.title}</strong>
         <span class="tag ${alert.level === "高" ? "high" : alert.level === "中" ? "medium" : "low"}">${alert.level}风险</span>
-        ${alert.area} · ${fmtTime(alert.createdAt)}
+      </div>
+      <p>
+        <span class="tag ${alert.status}">${statusLabel(alert.status)}</span>
+        ${alert.area} · 创建于 ${fmtTime(alert.createdAt)}
       </p>
+      ${latestRemark || latestHandler ? `
+        <div class="alert-disposal-summary">
+          <div class="summary-line">
+            <span class="summary-icon">📋</span>
+            <span class="summary-text">${latestRemark || "暂无处置说明"}</span>
+          </div>
+          ${latestHandler ? `
+            <div class="summary-meta">
+              <span>${latestHandler}</span>
+              ${latestUpdate ? `<span>· ${latestUpdate}</span>` : ""}
+            </div>
+          ` : ""}
+        </div>
+      ` : `
+        <div class="alert-disposal-summary empty">
+          <span class="summary-icon">⏳</span>
+          <span class="summary-text">尚未处置</span>
+        </div>
+      `}
     </article>
   `;
 }

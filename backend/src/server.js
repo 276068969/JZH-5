@@ -197,9 +197,32 @@ async function handleApi(req, res) {
       const body = await readBody(req);
       const alert = data.alerts.find((item) => item.id === id);
       if (!alert) return sendJson(res, 404, { message: "告警不存在。" });
-      alert.status = body.status || alert.status;
+
+      const previousStatus = alert.status;
+      const newStatus = body.status || alert.status;
+      const remark = body.remark ? String(body.remark).slice(0, 500) : null;
+      const now = new Date().toISOString();
+
+      alert.status = newStatus;
       alert.handler = user.name;
-      alert.updatedAt = new Date().toISOString();
+      alert.updatedAt = now;
+      if (remark) {
+        alert.remark = remark;
+      }
+
+      if (!Array.isArray(alert.history)) {
+        alert.history = [];
+      }
+
+      if (newStatus !== previousStatus || remark) {
+        alert.history.push({
+          status: newStatus,
+          handler: user.name,
+          remark: remark || `状态变更为 ${newStatus}`,
+          timestamp: now
+        });
+      }
+
       writeStore(data);
       return sendJson(res, 200, { alert });
     }
