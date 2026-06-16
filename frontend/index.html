@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>候鸟迁徙监管平台</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <strong>候鸟迁徙监管平台</strong>
+      <span>迁飞路线态势监测</span>
+    </div>
+    <nav>
+      <a href="/">监测台</a>
+      <a href="/admin.html">后台管理</a>
+      <button class="ghost" id="logoutBtn">退出</button>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Migration Supervision</p>
+        <h1>候鸟迁徙态势一屏监管</h1>
+        <p>汇聚路线进度、站点状态、告警事件和现场观测记录，为保护区联防联控提供统一入口。</p>
+      </div>
+      <form class="login-panel" id="loginForm">
+        <h2>账号登录</h2>
+        <label>用户名 <input name="username" value="admin" autocomplete="username"></label>
+        <label>密码 <input name="password" type="password" value="Admin@2026" autocomplete="current-password"></label>
+        <button type="submit">登录平台</button>
+        <small id="loginMsg">可使用 README 中的测试账号。</small>
+      </form>
+    </section>
+
+    <section class="metrics" id="metrics"></section>
+
+    <section class="grid-two">
+      <div class="panel map-panel">
+        <div class="panel-head">
+          <h2>迁飞路线</h2>
+          <span id="routeCount">0 条路线</span>
+        </div>
+        <div class="map-visual">
+          <span class="pin pin-a"></span>
+          <span class="pin pin-b"></span>
+          <span class="pin pin-c"></span>
+          <svg viewBox="0 0 800 320" aria-hidden="true">
+            <path d="M80 240 C210 100, 320 90, 450 170 S660 250, 730 70" />
+            <path d="M90 110 C210 190, 330 210, 470 100 S610 60, 720 190" />
+          </svg>
+        </div>
+        <div id="routes" class="route-list"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>告警事件</h2>
+          <a href="/admin.html">去处置</a>
+        </div>
+        <div id="alerts" class="stack"></div>
+      </div>
+    </section>
+
+    <section class="grid-two">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>监测站状态</h2>
+          <span>自动上报</span>
+        </div>
+        <div id="stations" class="station-grid"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>现场观测上报</h2>
+          <span>巡护员可提交</span>
+        </div>
+        <form class="observation-form" id="observationForm">
+          <input name="species" placeholder="鸟种，如 白鹤" required>
+          <input name="count" type="number" min="1" placeholder="数量" required>
+          <input name="location" placeholder="观测地点" required>
+          <select name="route">
+            <option>东亚-澳大利西亚路线</option>
+            <option>中亚迁飞路线</option>
+            <option>西太平洋沿海路线</option>
+          </select>
+          <button type="submit">提交记录</button>
+        </form>
+        <div id="observations" class="stack"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/assets/app.js"></script>
+</body>
+</html>

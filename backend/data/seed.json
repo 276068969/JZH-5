@@ -1,0 +1,50 @@
+{
+  "dailyCounts": [11620, 12840, 13590, 14120, 15180, 14960, 16240],
+  "routes": [
+    {
+      "id": "R-001",
+      "name": "东亚-澳大利西亚迁飞路线",
+      "season": "春季北迁",
+      "risk": "medium",
+      "progress": 68,
+      "species": ["白鹤", "黑脸琵鹭", "斑尾塍鹬"],
+      "currentArea": "长江中下游湿地群"
+    },
+    {
+      "id": "R-002",
+      "name": "中亚迁飞路线",
+      "season": "繁殖地回归",
+      "risk": "high",
+      "progress": 74,
+      "species": ["大天鹅", "灰雁", "蓑羽鹤"],
+      "currentArea": "青海湖-祁连山通道"
+    },
+    {
+      "id": "R-003",
+      "name": "西太平洋沿海路线",
+      "season": "沿海补给",
+      "risk": "low",
+      "progress": 43,
+      "species": ["红腹滨鹬", "小青脚鹬", "遗鸥"],
+      "currentArea": "黄渤海潮间带"
+    }
+  ],
+  "stations": [
+    { "id": "ST-101", "name": "鄱阳湖南矶站", "status": "online", "temperature": 24, "humidity": 76, "battery": 89 },
+    { "id": "ST-102", "name": "崇明东滩雷达站", "status": "online", "temperature": 22, "humidity": 81, "battery": 93 },
+    { "id": "ST-103", "name": "青海湖鸟岛站", "status": "warning", "temperature": 12, "humidity": 48, "battery": 37 },
+    { "id": "ST-104", "name": "黄河三角洲声纹站", "status": "online", "temperature": 25, "humidity": 70, "battery": 82 }
+  ],
+  "alerts": [
+    { "id": "AL-001", "level": "高", "title": "核心停歇地出现异常低空无人机", "area": "青海湖鸟岛站", "status": "processing", "createdAt": "2026-06-11T02:10:00.000Z" },
+    { "id": "AL-002", "level": "中", "title": "潮间带游客密度超过阈值", "area": "黄渤海潮间带", "status": "open", "createdAt": "2026-06-11T03:30:00.000Z" },
+    { "id": "AL-003", "level": "低", "title": "红外相机电量偏低", "area": "鄱阳湖南矶站", "status": "resolved", "createdAt": "2026-06-10T09:24:00.000Z" }
+  ],
+  "observations": [
+    { "id": "OBS-001", "species": "黑脸琵鹭", "count": 126, "location": "崇明东滩", "route": "西太平洋沿海路线", "observer": "保护站巡护员", "recordedAt": "2026-06-11T01:12:00.000Z" },
+    { "id": "OBS-002", "species": "白鹤", "count": 48, "location": "鄱阳湖", "route": "东亚-澳大利西亚路线", "observer": "保护站巡护员", "recordedAt": "2026-06-11T04:18:00.000Z" }
+  ],
+  "broadcasts": [
+    { "id": "BRC-001", "title": "北迁高峰值守提醒", "content": "未来三日重点关注湖区夜间补给群体，各站保持声纹与红外设备在线。", "publisher": "监管中心管理员", "createdAt": "2026-06-10T08:00:00.000Z" }
+  ]
+}

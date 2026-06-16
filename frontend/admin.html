@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>后台管理 - 候鸟迁徙监管平台</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <strong>后台管理</strong>
+      <span>告警处置与监管发布</span>
+    </div>
+    <nav>
+      <a href="/">监测台</a>
+      <a href="/admin.html">后台管理</a>
+      <button class="ghost" id="logoutBtn">退出</button>
+    </nav>
+  </header>
+
+  <main class="shell admin-shell">
+    <section class="admin-aside">
+      <form class="login-panel compact" id="loginForm">
+        <h2>管理员登录</h2>
+        <label>用户名 <input name="username" value="admin"></label>
+        <label>密码 <input name="password" type="password" value="Admin@2026"></label>
+        <button type="submit">进入后台</button>
+        <small id="loginMsg">管理员可发布通知，巡护员可处理告警。</small>
+      </form>
+
+      <form class="panel broadcast-form" id="broadcastForm">
+        <div class="panel-head">
+          <h2>监管通知</h2>
+          <span>管理员</span>
+        </div>
+        <input name="title" placeholder="通知标题" required>
+        <textarea name="content" rows="5" placeholder="通知内容" required></textarea>
+        <button type="submit">发布通知</button>
+      </form>
+    </section>
+
+    <section class="admin-main">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>告警处置台</h2>
+          <span>按事件闭环</span>
+        </div>
+        <div id="alerts" class="admin-table"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>设备巡检</h2>
+          <span>站点健康</span>
+        </div>
+        <div id="stations" class="admin-table"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/assets/admin.js"></script>
+</body>
+</html>

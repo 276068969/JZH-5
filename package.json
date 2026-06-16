@@ -1,0 +1,13 @@
+{
+  "name": "migratory-bird-supervision",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node backend/src/server.js",
+    "dev": "NODE_ENV=development node backend/src/server.js",
+    "test": "DATA_DIR=tmp/test-data node backend/src/server.js --healthcheck"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
