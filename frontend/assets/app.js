@@ -47,7 +47,7 @@ function renderMetric(metric) {
 
 function renderRoute(route) {
   return `
-    <article class="list-item" data-route-id="${route.id}">
+    <article class="list-item" data-route-id="${route.id}" role="button" tabindex="0">
       <strong>${route.name}</strong>
       <p>
         <span class="tag ${riskClass(route.risk)}">${route.risk.toUpperCase()}</span>
@@ -56,6 +56,127 @@ function renderRoute(route) {
       <div class="progress"><i style="width:${route.progress}%"></i></div>
     </article>
   `;
+}
+
+function riskLabel(risk) {
+  return { high: "高风险", medium: "中风险", low: "低风险" }[risk] || "未知";
+}
+
+function renderRouteDetail(route) {
+  const riskColor = riskClass(route.risk);
+  return `
+    <div class="route-detail-section">
+      <div class="detail-highlight">
+        <div class="highlight-card risk-${riskColor}">
+          <span class="highlight-label">风险等级</span>
+          <div class="highlight-value">
+            <span class="risk-badge ${riskColor}">${riskLabel(route.risk)}</span>
+          </div>
+        </div>
+        <div class="highlight-card season">
+          <span class="highlight-label">迁徙阶段</span>
+          <div class="highlight-value">
+            ${route.season}
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3>迁徙进度</h3>
+        <div class="progress-detail">
+          <div class="progress-header">
+            <span class="detail-item-label">已完成</span>
+            <span class="progress-percent">${route.progress}%</span>
+          </div>
+          <div class="progress-bar-large"><i style="width:${route.progress}%"></i></div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3>基本信息</h3>
+        <div class="detail-item">
+          <span class="detail-item-label">当前区域</span>
+          <span class="detail-item-value">${route.currentArea}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-item-label">路线编号</span>
+          <span class="detail-item-value route-id">${route.id}</span>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h3>重点鸟种</h3>
+        <div class="species-tags">
+          ${route.species.map(s => `<span class="species-tag">${s}</span>`).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openRouteDrawer(routeId) {
+  const route = state.allRoutes.find(r => r.id === routeId);
+  if (!route) return;
+
+  $("#drawerRouteName").textContent = route.name;
+  $("#drawerContent").innerHTML = renderRouteDetail(route);
+
+  $("#routeDrawer").classList.add("open");
+  $("#routeDrawer").setAttribute("aria-hidden", "false");
+  $("#routeDrawerOverlay").classList.add("visible");
+
+  $$("#routes .list-item").forEach(item => {
+    item.classList.toggle("active", item.dataset.routeId === routeId);
+  });
+
+  const path = $(`#route-path-${routeId}`);
+  if (path) {
+    path.style.strokeWidth = "8";
+    path.style.filter = "drop-shadow(0 0 6px rgba(15, 123, 108, 0.5))";
+  }
+}
+
+function closeRouteDrawer() {
+  $("#routeDrawer").classList.remove("open");
+  $("#routeDrawer").setAttribute("aria-hidden", "true");
+  $("#routeDrawerOverlay").classList.remove("visible");
+
+  $$("#routes .list-item").forEach(item => {
+    item.classList.remove("active");
+  });
+
+  $$(".map-visual path").forEach(path => {
+    path.style.strokeWidth = "";
+    path.style.filter = "";
+  });
+}
+
+function bindRouteClickEvents() {
+  $("#routes").addEventListener("click", (e) => {
+    const item = e.target.closest(".list-item");
+    if (item) {
+      openRouteDrawer(item.dataset.routeId);
+    }
+  });
+
+  $("#routes").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      const item = e.target.closest(".list-item");
+      if (item) {
+        e.preventDefault();
+        openRouteDrawer(item.dataset.routeId);
+      }
+    }
+  });
+
+  $("#drawerClose").addEventListener("click", closeRouteDrawer);
+  $("#routeDrawerOverlay").addEventListener("click", closeRouteDrawer);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && $("#routeDrawer").classList.contains("open")) {
+      closeRouteDrawer();
+    }
+  });
 }
 
 function getFilteredRoutes() {
@@ -208,6 +329,8 @@ function renderObservation(item) {
   `;
 }
 
+let routeEventsBound = false;
+
 async function loadDashboard() {
   if (!state.token) return;
   const [overview, alerts, observations] = await Promise.all([
@@ -220,6 +343,10 @@ async function loadDashboard() {
   $("#metrics").innerHTML = overview.metrics.map(renderMetric).join("");
   populateFilterOptions();
   bindFilterEvents();
+  if (!routeEventsBound) {
+    bindRouteClickEvents();
+    routeEventsBound = true;
+  }
   applyFilters();
   $("#alerts").innerHTML = alerts.alerts.map(renderAlert).join("");
   $("#stations").innerHTML = overview.stations.map(renderStation).join("");
