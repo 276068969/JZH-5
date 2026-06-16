@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "start": "node backend/src/server.js",
-    "dev": "NODE_ENV=development node backend/src/server.js",
-    "test": "DATA_DIR=tmp/test-data node backend/src/server.js --healthcheck"
+    "dev": "cross-env NODE_ENV=development node backend/src/server.js",
+    "test": "cross-env DATA_DIR=tmp/test-data node backend/src/server.js --healthcheck"
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0"
   }
 }
