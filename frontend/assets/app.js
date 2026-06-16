@@ -1,9 +1,16 @@
 const state = {
   token: localStorage.getItem("mb_token"),
-  user: JSON.parse(localStorage.getItem("mb_user") || "null")
+  user: JSON.parse(localStorage.getItem("mb_user") || "null"),
+  allRoutes: [],
+  filters: {
+    risk: "all",
+    season: "all",
+    currentArea: "all"
+  }
 };
 
 const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => document.querySelectorAll(selector);
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -40,7 +47,7 @@ function renderMetric(metric) {
 
 function renderRoute(route) {
   return `
-    <article class="list-item">
+    <article class="list-item" data-route-id="${route.id}">
       <strong>${route.name}</strong>
       <p>
         <span class="tag ${riskClass(route.risk)}">${route.risk.toUpperCase()}</span>
@@ -49,6 +56,93 @@ function renderRoute(route) {
       <div class="progress"><i style="width:${route.progress}%"></i></div>
     </article>
   `;
+}
+
+function getFilteredRoutes() {
+  return state.allRoutes.filter((route) => {
+    if (state.filters.risk !== "all" && route.risk !== state.filters.risk) return false;
+    if (state.filters.season !== "all" && route.season !== state.filters.season) return false;
+    if (state.filters.currentArea !== "all" && route.currentArea !== state.filters.currentArea) return false;
+    return true;
+  });
+}
+
+function updateMapVisual(filteredRoutes) {
+  const filteredIds = new Set(filteredRoutes.map((r) => r.id));
+  state.allRoutes.forEach((route) => {
+    const path = $(`#route-path-${route.id}`);
+    if (!path) return;
+    path.classList.remove("dimmed", "highlight-high", "highlight-medium", "highlight-low");
+    if (filteredIds.size === state.allRoutes.length) {
+      path.classList.add(`highlight-${route.risk}`);
+    } else if (filteredIds.has(route.id)) {
+      path.classList.add(`highlight-${route.risk}`);
+    } else {
+      path.classList.add("dimmed");
+    }
+  });
+}
+
+function populateFilterOptions() {
+  const seasons = [...new Set(state.allRoutes.map((r) => r.season))];
+  const areas = [...new Set(state.allRoutes.map((r) => r.currentArea))];
+
+  const seasonSelect = $("#filterSeason");
+  const areaSelect = $("#filterArea");
+
+  seasons.forEach((s) => {
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    seasonSelect.appendChild(opt);
+  });
+
+  areas.forEach((a) => {
+    const opt = document.createElement("option");
+    opt.value = a;
+    opt.textContent = a;
+    areaSelect.appendChild(opt);
+  });
+}
+
+function applyFilters() {
+  const filtered = getFilteredRoutes();
+  $("#routeCount").textContent = `${filtered.length} 条路线`;
+  $("#routes").innerHTML = filtered.map(renderRoute).join("") || `<p style="color:var(--muted);padding:14px;">暂无符合条件的路线</p>`;
+  updateMapVisual(filtered);
+}
+
+function resetFilters() {
+  state.filters = { risk: "all", season: "all", currentArea: "all" };
+  $$("#filterRisk .chip").forEach((chip) => {
+    chip.classList.toggle("active", chip.dataset.value === "all");
+  });
+  $("#filterSeason").value = "all";
+  $("#filterArea").value = "all";
+  applyFilters();
+}
+
+function bindFilterEvents() {
+  $$("#filterRisk .chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      $$("#filterRisk .chip").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      state.filters.risk = chip.dataset.value;
+      applyFilters();
+    });
+  });
+
+  $("#filterSeason").addEventListener("change", (e) => {
+    state.filters.season = e.target.value;
+    applyFilters();
+  });
+
+  $("#filterArea").addEventListener("change", (e) => {
+    state.filters.currentArea = e.target.value;
+    applyFilters();
+  });
+
+  $("#resetFilters").addEventListener("click", resetFilters);
 }
 
 function renderAlert(alert) {
@@ -93,9 +187,11 @@ async function loadDashboard() {
     api("/api/observations")
   ]);
 
+  state.allRoutes = overview.routes;
   $("#metrics").innerHTML = overview.metrics.map(renderMetric).join("");
-  $("#routeCount").textContent = `${overview.routes.length} 条路线`;
-  $("#routes").innerHTML = overview.routes.map(renderRoute).join("");
+  populateFilterOptions();
+  bindFilterEvents();
+  applyFilters();
   $("#alerts").innerHTML = alerts.alerts.map(renderAlert).join("");
   $("#stations").innerHTML = overview.stations.map(renderStation).join("");
   $("#observations").innerHTML = observations.observations.map(renderObservation).join("");

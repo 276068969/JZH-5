@@ -43,13 +43,38 @@
           <h2>迁飞路线</h2>
           <span id="routeCount">0 条路线</span>
         </div>
+        <div class="filter-panel">
+          <div class="filter-group">
+            <label>风险等级</label>
+            <div class="filter-chips" id="filterRisk">
+              <button class="chip active" data-value="all">全部</button>
+              <button class="chip" data-value="high"><span class="dot high"></span>高风险</button>
+              <button class="chip" data-value="medium"><span class="dot medium"></span>中风险</button>
+              <button class="chip" data-value="low"><span class="dot low"></span>低风险</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label>迁徙阶段</label>
+            <select id="filterSeason">
+              <option value="all">全部季节</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>当前区域</label>
+            <select id="filterArea">
+              <option value="all">全部区域</option>
+            </select>
+          </div>
+          <button class="reset-btn" id="resetFilters">重置筛选</button>
+        </div>
         <div class="map-visual">
           <span class="pin pin-a"></span>
           <span class="pin pin-b"></span>
           <span class="pin pin-c"></span>
           <svg viewBox="0 0 800 320" aria-hidden="true">
-            <path d="M80 240 C210 100, 320 90, 450 170 S660 250, 730 70" />
-            <path d="M90 110 C210 190, 330 210, 470 100 S610 60, 720 190" />
+            <path id="route-path-R-001" d="M80 240 C210 100, 320 90, 450 170 S660 250, 730 70" />
+            <path id="route-path-R-002" d="M90 110 C210 190, 330 210, 470 100 S610 60, 720 190" />
+            <path id="route-path-R-003" d="M150 280 C280 180, 420 160, 560 200 S700 180, 760 100" />
           </svg>
         </div>
         <div id="routes" class="route-list"></div>
