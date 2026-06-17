@@ -473,6 +473,67 @@ textarea:focus {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.broadcasts-panel {
+  margin-top: 22px;
+  background: linear-gradient(135deg, #fff9ed 0%, #fdfbf5 100%);
+  border: 1px solid #f7e2b8;
+}
+
+.broadcasts-panel .panel-head h2 {
+  color: var(--primary-dark);
+}
+
+.broadcast-item {
+  background: #ffffff;
+  border-left: 4px solid var(--accent);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.broadcast-item:hover {
+  border-left-color: var(--primary);
+  box-shadow: 0 4px 16px rgba(15, 123, 108, 0.12);
+  transform: translateY(-1px);
+}
+
+.broadcast-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.broadcast-title {
+  color: var(--primary-dark);
+  font-size: 16px;
+  margin-bottom: 0 !important;
+}
+
+.broadcast-content {
+  color: var(--ink) !important;
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 10px;
+}
+
+.broadcast-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  color: var(--muted) !important;
+  font-size: 12px;
+  font-weight: 700;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+.broadcast-publisher::before {
+  content: "👤 ";
+}
+
+.broadcast-time::before {
+  content: "🕐 ";
+}
+
 .observation-form,
 .broadcast-form {
   display: grid;

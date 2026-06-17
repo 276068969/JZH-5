@@ -423,6 +423,21 @@ function renderObservation(item) {
   `;
 }
 
+function renderBroadcast(broadcast) {
+  return `
+    <article class="list-item broadcast-item">
+      <div class="broadcast-header">
+        <strong class="broadcast-title">${broadcast.title}</strong>
+      </div>
+      <p class="broadcast-content">${broadcast.content}</p>
+      <p class="broadcast-meta">
+        <span class="broadcast-publisher">发布人：${broadcast.publisher}</span>
+        <span class="broadcast-time">${fmtTime(broadcast.createdAt)}</span>
+      </p>
+    </article>
+  `;
+}
+
 function populateRouteSelect() {
   const routeSelect = $("#routeSelect");
   if (!routeSelect || state.allRoutes.length === 0) return;
@@ -458,6 +473,15 @@ async function loadDashboard() {
 
   state.allRoutes = overview.routes;
   $("#metrics").innerHTML = overview.metrics.map(renderMetric).join("");
+
+  if (overview.announcements && overview.announcements.length > 0) {
+    $("#broadcastsPanel").hidden = false;
+    $("#broadcastCount").textContent = `${overview.announcements.length} 条`;
+    $("#broadcasts").innerHTML = overview.announcements.map(renderBroadcast).join("");
+  } else {
+    $("#broadcastsPanel").hidden = true;
+  }
+
   populateFilterOptions();
   populateRouteSelect();
   bindFilterEvents();
