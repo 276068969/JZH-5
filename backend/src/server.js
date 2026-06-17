@@ -319,14 +319,75 @@ async function handleApi(req, res) {
       const user = requireUser(req, res, ["admin", "ranger"]);
       if (!user) return;
       const body = await readBody(req);
+
+      const errors = [];
+      const species = String(body.species || "").trim();
+      const countRaw = body.count;
+      const count = Number(countRaw);
+      const location = String(body.location || "").trim();
+      const route = String(body.route || "").trim();
+      const validRouteNames = data.routes.map((r) => r.name);
+      const now = new Date();
+
+      if (!species) {
+        errors.push("鸟种名称不能为空，请输入观测到的鸟种名称。");
+      } else if (species.length < 2) {
+        errors.push("鸟种名称过短，至少需要 2 个字符，请补充完整。");
+      } else if (species.length > 32) {
+        errors.push(`鸟种名称过长，当前 ${species.length} 字符，最多允许 32 字符，请精简。`);
+      }
+
+      if (countRaw === undefined || countRaw === null || countRaw === "") {
+        errors.push("观测数量不能为空，请输入观测到的鸟只数量。");
+      } else if (!Number.isInteger(count) || count <= 0) {
+        errors.push("观测数量必须为正整数，请输入有效的鸟只数量。");
+      } else if (count > 10000) {
+        errors.push(`观测数量过大，当前 ${count} 只，单次上报最多允许 10000 只，请核实数据后重新提交。`);
+      }
+
+      if (!location) {
+        errors.push("观测地点不能为空，请输入观测位置。");
+      } else if (location.length < 2) {
+        errors.push("观测地点过短，至少需要 2 个字符，请补充完整。");
+      } else if (location.length > 48) {
+        errors.push(`观测地点过长，当前 ${location.length} 字符，最多允许 48 字符，请精简。`);
+      }
+
+      if (!route) {
+        errors.push("迁飞路线不能为空，请选择或输入迁飞路线。");
+      } else if (!validRouteNames.includes(route)) {
+        errors.push(`迁飞路线「${route}」不存在，请从以下有效路线中选择：${validRouteNames.join("、")}。`);
+      }
+
+      if (errors.length === 0) {
+        const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+        const recentDuplicate = data.observations.find((obs) => {
+          const recordedAt = new Date(obs.recordedAt);
+          return obs.location === location &&
+                 obs.species === species &&
+                 recordedAt >= fiveMinutesAgo;
+        });
+        if (recentDuplicate) {
+          const timeDiff = Math.round((now - new Date(recentDuplicate.recordedAt)) / 1000 / 60);
+          errors.push(`同一地点「${location}」在 ${timeDiff} 分钟内已上报过「${species}」，短时间内请勿重复上报。如需补充，请在 5 分钟后再次提交。`);
+        }
+      }
+
+      if (errors.length > 0) {
+        return sendJson(res, 400, {
+          message: "观测记录提交失败，请检查以下问题：",
+          errors: errors
+        });
+      }
+
       const observation = {
         id: nextId("OBS", data.observations),
-        species: String(body.species || "未识别鸟种").slice(0, 32),
-        count: Number(body.count || 0),
-        location: String(body.location || "未知位置").slice(0, 48),
-        route: String(body.route || "东亚-澳大利西亚路线").slice(0, 48),
+        species: species,
+        count: count,
+        location: location,
+        route: route,
         observer: user.name,
-        recordedAt: new Date().toISOString()
+        recordedAt: now.toISOString()
       };
       data.observations.push(observation);
       writeStore(data);

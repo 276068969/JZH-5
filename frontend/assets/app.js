@@ -22,7 +22,11 @@ async function api(path, options = {}) {
     }
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.message || "请求失败");
+  if (!response.ok) {
+    const error = new Error(data.message || "请求失败");
+    error.errors = data.errors || null;
+    throw error;
+  }
   return data;
 }
 
@@ -671,6 +675,30 @@ function hideConfirmation() {
   $("#observationForm").hidden = false;
 }
 
+function showObsFormError(error) {
+  const errorBox = $("#obsFormError");
+  if (!errorBox) return;
+
+  let html = `<div class="error-title">${error.message || "提交失败"}</div>`;
+  if (error.errors && error.errors.length > 0) {
+    html += '<ul class="error-list">';
+    error.errors.forEach((err) => {
+      html += `<li>${err}</li>`;
+    });
+    html += '</ul>';
+  }
+  errorBox.innerHTML = html;
+  errorBox.hidden = false;
+}
+
+function hideObsFormError() {
+  const errorBox = $("#obsFormError");
+  if (errorBox) {
+    errorBox.hidden = true;
+    errorBox.innerHTML = "";
+  }
+}
+
 async function submitObservation(formData) {
   try {
     await api("/api/observations", {
@@ -679,10 +707,11 @@ async function submitObservation(formData) {
     });
     $("#observationForm").reset();
     hideConfirmation();
+    hideObsFormError();
     pendingFormData = null;
     await loadDashboard();
   } catch (error) {
-    alert(error.message);
+    showObsFormError(error);
   }
 }
 
@@ -701,7 +730,12 @@ $("#observationForm").addEventListener("submit", (event) => {
 
 $("#cancelConfirm").addEventListener("click", () => {
   hideConfirmation();
+  hideObsFormError();
   pendingFormData = null;
+});
+
+$("#observationForm").addEventListener("input", () => {
+  hideObsFormError();
 });
 
 $("#confirmSubmit").addEventListener("click", () => {

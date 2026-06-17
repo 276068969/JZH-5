@@ -547,8 +547,39 @@ textarea:focus {
 
 .observation-form input:nth-child(3),
 .observation-form select,
+.observation-form .form-error-box,
 .observation-form button {
   grid-column: span 2;
+}
+
+.form-error-box {
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #b91c1c;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.form-error-box .error-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.form-error-box .error-list {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.form-error-box .error-list li {
+  margin-bottom: 3px;
+}
+
+.form-error-box .error-list li:last-child {
+  margin-bottom: 0;
 }
 
 .confirmation-summary {
@@ -731,6 +762,7 @@ textarea:focus {
 
   .observation-form input:nth-child(3),
   .observation-form select,
+  .observation-form .form-error-box,
   .observation-form button,
   .reset-btn {
     grid-column: span 1;
