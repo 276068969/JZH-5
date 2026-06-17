@@ -453,6 +453,171 @@ async function handleApi(req, res) {
       return sendJson(res, 201, { broadcast });
     }
 
+    if (req.method === "GET" && url.pathname === "/api/species") {
+      const user = requireUser(req, res);
+      if (!user) return;
+      return sendJson(res, 200, { speciesList: data.speciesList });
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/api/admin/species/")) {
+      const user = requireUser(req, res, ["admin", "ranger"]);
+      if (!user) return;
+      const id = decodeURIComponent(url.pathname.split("/").pop());
+      const species = data.speciesList.find((s) => s.id === id);
+      if (!species) return sendJson(res, 404, { message: "物种不存在。" });
+      return sendJson(res, 200, { species });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/admin/species") {
+      const user = requireUser(req, res, ["admin"]);
+      if (!user) return;
+      const body = await readBody(req);
+      const errors = [];
+      const name = String(body.name || "").trim();
+      const protectionLevel = String(body.protectionLevel || "").trim();
+      const commonRoutes = Array.isArray(body.commonRoutes) ? body.commonRoutes.map((r) => String(r).trim()).filter(Boolean) : [];
+      const remarks = String(body.remarks || "").trim();
+      const validRouteNames = data.routes.map((r) => r.name);
+
+      if (!name) {
+        errors.push("候鸟名称不能为空，请输入鸟种名称。");
+      } else if (name.length < 2) {
+        errors.push("候鸟名称过短，至少需要 2 个字符，请补充完整。");
+      } else if (name.length > 32) {
+        errors.push(`候鸟名称过长，当前 ${name.length} 字符，最多允许 32 字符，请精简。`);
+      } else if (data.speciesList.some((s) => s.name === name)) {
+        errors.push(`候鸟名称「${name}」已存在，请使用其他名称。`);
+      }
+
+      if (!protectionLevel) {
+        errors.push("保护等级不能为空，请选择保护等级。");
+      } else if (!["国家一级", "国家二级", "三有保护", "无"].includes(protectionLevel)) {
+        errors.push(`保护等级「${protectionLevel}」无效，请选择有效等级。`);
+      }
+
+      if (commonRoutes.length === 0) {
+        errors.push("常见路线不能为空，请至少选择一条迁飞路线。");
+      } else {
+        for (const route of commonRoutes) {
+          if (!validRouteNames.includes(route)) {
+            errors.push(`迁飞路线「${route}」不存在，请从有效路线中选择。`);
+            break;
+          }
+        }
+      }
+
+      if (remarks.length > 500) {
+        errors.push(`监测备注过长，当前 ${remarks.length} 字符，最多允许 500 字符，请精简。`);
+      }
+
+      if (errors.length > 0) {
+        return sendJson(res, 400, {
+          message: "重点物种创建失败，请检查以下问题：",
+          errors: errors
+        });
+      }
+
+      const now = new Date().toISOString();
+      const species = {
+        id: nextId("SPC", data.speciesList),
+        name: name,
+        protectionLevel: protectionLevel,
+        commonRoutes: commonRoutes,
+        remarks: remarks,
+        createdAt: now,
+        updatedAt: now
+      };
+      data.speciesList.push(species);
+      writeStore(data);
+      return sendJson(res, 201, { species });
+    }
+
+    if (req.method === "PATCH" && url.pathname.startsWith("/api/admin/species/")) {
+      const user = requireUser(req, res, ["admin"]);
+      if (!user) return;
+      const id = decodeURIComponent(url.pathname.split("/").pop());
+      const species = data.speciesList.find((s) => s.id === id);
+      if (!species) return sendJson(res, 404, { message: "物种不存在。" });
+
+      const body = await readBody(req);
+      const errors = [];
+      const validRouteNames = data.routes.map((r) => r.name);
+
+      let name = species.name;
+      if (body.name !== undefined) {
+        name = String(body.name).trim();
+        if (!name) {
+          errors.push("候鸟名称不能为空，请输入鸟种名称。");
+        } else if (name.length < 2) {
+          errors.push("候鸟名称过短，至少需要 2 个字符，请补充完整。");
+        } else if (name.length > 32) {
+          errors.push(`候鸟名称过长，当前 ${name.length} 字符，最多允许 32 字符，请精简。`);
+        } else if (name !== species.name && data.speciesList.some((s) => s.name === name)) {
+          errors.push(`候鸟名称「${name}」已存在，请使用其他名称。`);
+        }
+      }
+
+      let protectionLevel = species.protectionLevel;
+      if (body.protectionLevel !== undefined) {
+        protectionLevel = String(body.protectionLevel).trim();
+        if (!protectionLevel) {
+          errors.push("保护等级不能为空，请选择保护等级。");
+        } else if (!["国家一级", "国家二级", "三有保护", "无"].includes(protectionLevel)) {
+          errors.push(`保护等级「${protectionLevel}」无效，请选择有效等级。`);
+        }
+      }
+
+      let commonRoutes = species.commonRoutes;
+      if (body.commonRoutes !== undefined) {
+        commonRoutes = Array.isArray(body.commonRoutes) ? body.commonRoutes.map((r) => String(r).trim()).filter(Boolean) : [];
+        if (commonRoutes.length === 0) {
+          errors.push("常见路线不能为空，请至少选择一条迁飞路线。");
+        } else {
+          for (const route of commonRoutes) {
+            if (!validRouteNames.includes(route)) {
+              errors.push(`迁飞路线「${route}」不存在，请从有效路线中选择。`);
+              break;
+            }
+          }
+        }
+      }
+
+      let remarks = species.remarks;
+      if (body.remarks !== undefined) {
+        remarks = String(body.remarks).trim();
+        if (remarks.length > 500) {
+          errors.push(`监测备注过长，当前 ${remarks.length} 字符，最多允许 500 字符，请精简。`);
+        }
+      }
+
+      if (errors.length > 0) {
+        return sendJson(res, 400, {
+          message: "重点物种更新失败，请检查以下问题：",
+          errors: errors
+        });
+      }
+
+      species.name = name;
+      species.protectionLevel = protectionLevel;
+      species.commonRoutes = commonRoutes;
+      species.remarks = remarks;
+      species.updatedAt = new Date().toISOString();
+      writeStore(data);
+      return sendJson(res, 200, { species });
+    }
+
+    if (req.method === "DELETE" && url.pathname.startsWith("/api/admin/species/")) {
+      const user = requireUser(req, res, ["admin"]);
+      if (!user) return;
+      const id = decodeURIComponent(url.pathname.split("/").pop());
+      const index = data.speciesList.findIndex((s) => s.id === id);
+      if (index === -1) return sendJson(res, 404, { message: "物种不存在。" });
+
+      data.speciesList.splice(index, 1);
+      writeStore(data);
+      return sendJson(res, 200, { message: "物种已删除。" });
+    }
+
     return sendJson(res, 404, { message: "接口不存在。" });
   } catch (error) {
     return sendJson(res, 400, { message: error.message || "请求处理失败。" });

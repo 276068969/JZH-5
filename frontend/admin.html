@@ -86,6 +86,49 @@
         </div>
         <div id="stations" class="admin-table"></div>
       </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>重点物种清单</h2>
+          <span>管理员维护</span>
+        </div>
+        <form class="species-form" id="speciesForm">
+          <div class="form-row">
+            <div class="form-col">
+              <label>候鸟名称</label>
+              <input name="name" placeholder="如：白鹤" required>
+            </div>
+            <div class="form-col">
+              <label>保护等级</label>
+              <select name="protectionLevel" required>
+                <option value="">请选择保护等级</option>
+                <option value="国家一级">国家一级</option>
+                <option value="国家二级">国家二级</option>
+                <option value="三有保护">三有保护</option>
+                <option value="无">无</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-col-full">
+              <label>常见路线（可多选）</label>
+              <div class="checkbox-group" id="routeCheckboxes"></div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-col-full">
+              <label>监测备注</label>
+              <textarea name="remarks" rows="3" placeholder="输入监测要点、识别特征等信息（可选）"></textarea>
+            </div>
+          </div>
+          <div class="form-error-box" id="speciesFormError" hidden></div>
+          <div class="form-actions">
+            <button type="submit" id="speciesSubmitBtn">新增物种</button>
+            <button type="button" class="secondary-btn" id="speciesCancelBtn" hidden>取消编辑</button>
+          </div>
+        </form>
+        <div id="speciesList" class="admin-table"></div>
+      </div>
     </section>
   </main>
 

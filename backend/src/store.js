@@ -4,7 +4,7 @@ const path = require("path");
 const seedPath = path.join(__dirname, "..", "data", "seed.json");
 const dataDir = process.env.DATA_DIR || path.join(__dirname, "..", "data");
 const runtimePath = path.join(dataDir, "runtime.json");
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 const STATION_DEFAULTS = {
   lastReportedAt: null,
@@ -37,6 +37,24 @@ function migrate(data) {
   if (version < 2) {
     changed = migrateToV2(data) || changed;
     data._schemaVersion = 2;
+    changed = true;
+  }
+
+  if (version < 3) {
+    changed = migrateToV3(data) || changed;
+    data._schemaVersion = 3;
+    changed = true;
+  }
+
+  return changed;
+}
+
+function migrateToV3(data) {
+  let changed = false;
+  const seed = JSON.parse(fs.readFileSync(seedPath, "utf8"));
+
+  if (!Array.isArray(data.speciesList)) {
+    data.speciesList = seed.speciesList || [];
     changed = true;
   }
 

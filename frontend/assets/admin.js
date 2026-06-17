@@ -9,7 +9,10 @@ const state = {
     level: "all",
     area: "all"
   },
-  allAlerts: []
+  allAlerts: [],
+  allSpecies: [],
+  allRoutes: [],
+  editingSpeciesId: null
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -50,6 +53,235 @@ function batteryLevel(battery) {
   if (battery < 40) return { level: "low", text: "低电量" };
   if (battery < 70) return { level: "medium", text: "中等" };
   return { level: "good", text: "充足" };
+}
+
+function protectionLevelClass(level) {
+  return {
+    "国家一级": "high",
+    "国家二级": "medium",
+    "三有保护": "low",
+    "无": ""
+  }[level] || "";
+}
+
+function protectionLevelLabel(level) {
+  return level || "无";
+}
+
+function renderSpecies(species) {
+  const isEditing = state.editingSpeciesId === species.id;
+  const levelClass = protectionLevelClass(species.protectionLevel);
+
+  return `
+    <article class="admin-row species-row" data-species-id="${species.id}">
+      <div class="species-main">
+        <div class="species-header">
+          <strong>${species.name}</strong>
+          <span class="tag ${levelClass}">${protectionLevelLabel(species.protectionLevel)}</span>
+        </div>
+        <p class="species-meta">
+          常见路线：${species.commonRoutes.join("、")}
+          ${species.remarks ? ` · ${species.remarks.length > 60 ? species.remarks.slice(0, 60) + "…" : species.remarks}` : ""}
+        </p>
+        <p class="species-meta">
+          创建于 ${fmtTime(species.createdAt)} · 最后更新 ${fmtTime(species.updatedAt)}
+        </p>
+      </div>
+      <div class="species-actions">
+        <button class="secondary-btn species-edit-btn" data-edit="${species.id}" ${state.user?.role !== "admin" ? "disabled" : ""}>
+          编辑
+        </button>
+        <button class="secondary-btn species-delete-btn" data-delete="${species.id}" ${state.user?.role !== "admin" ? "disabled" : ""}>
+          删除
+        </button>
+      </div>
+    </article>
+  `;
+}
+
+function renderSpeciesList() {
+  const container = $("#speciesList");
+  if (!container) return;
+
+  if (state.allSpecies.length === 0) {
+    container.innerHTML = '<p style="color:var(--muted);padding:20px;text-align:center;">暂无重点物种，请先添加</p>';
+    return;
+  }
+
+  container.innerHTML = state.allSpecies
+    .slice()
+    .sort((a, b) => {
+      const levelOrder = { "国家一级": 0, "国家二级": 1, "三有保护": 2, "无": 3 };
+      return (levelOrder[a.protectionLevel] || 4) - (levelOrder[b.protectionLevel] || 4);
+    })
+    .map(renderSpecies)
+    .join("");
+}
+
+function renderRouteCheckboxes() {
+  const container = $("#routeCheckboxes");
+  if (!container || state.allRoutes.length === 0) return;
+
+  container.innerHTML = state.allRoutes.map(route => `
+    <label class="checkbox-item">
+      <input type="checkbox" name="commonRoutes" value="${route.name}">
+      <span>${route.name}</span>
+    </label>
+  `).join("");
+}
+
+function populateSpeciesForm(species) {
+  const form = $("#speciesForm");
+  if (!form) return;
+
+  form.name.value = species.name;
+  form.protectionLevel.value = species.protectionLevel;
+  form.remarks.value = species.remarks || "";
+
+  form.querySelectorAll('input[name="commonRoutes"]').forEach(checkbox => {
+    checkbox.checked = species.commonRoutes.includes(checkbox.value);
+  });
+
+  state.editingSpeciesId = species.id;
+  $("#speciesSubmitBtn").textContent = "更新物种";
+  $("#speciesCancelBtn").hidden = false;
+}
+
+function resetSpeciesForm() {
+  const form = $("#speciesForm");
+  if (!form) return;
+
+  form.reset();
+  form.querySelectorAll('input[name="commonRoutes"]').forEach(checkbox => {
+    checkbox.checked = false;
+  });
+
+  state.editingSpeciesId = null;
+  $("#speciesSubmitBtn").textContent = "新增物种";
+  $("#speciesCancelBtn").hidden = true;
+  hideSpeciesFormError();
+}
+
+function showSpeciesFormError(error) {
+  const errorBox = $("#speciesFormError");
+  if (!errorBox) return;
+
+  let html = `<div class="error-title">${error.message || "提交失败"}</div>`;
+  if (error.errors && error.errors.length > 0) {
+    html += '<ul class="error-list">';
+    error.errors.forEach((err) => {
+      html += `<li>${err}</li>`;
+    });
+    html += '</ul>';
+  }
+  errorBox.innerHTML = html;
+  errorBox.hidden = false;
+}
+
+function hideSpeciesFormError() {
+  const errorBox = $("#speciesFormError");
+  if (errorBox) {
+    errorBox.hidden = true;
+    errorBox.innerHTML = "";
+  }
+}
+
+async function loadSpeciesAndRoutes() {
+  if (!state.token) return;
+
+  try {
+    const [speciesData, migrationsData] = await Promise.all([
+      api("/api/species"),
+      api("/api/migrations")
+    ]);
+
+    state.allSpecies = speciesData.speciesList;
+    state.allRoutes = migrationsData.routes;
+
+    renderRouteCheckboxes();
+    renderSpeciesList();
+  } catch (error) {
+    console.error("Failed to load species data:", error);
+  }
+}
+
+async function handleSpeciesSubmit(event) {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+  const formData = new FormData(form);
+
+  const name = String(formData.get("name") || "").trim();
+  const protectionLevel = String(formData.get("protectionLevel") || "").trim();
+  const commonRoutes = formData.getAll("commonRoutes").map(r => String(r).trim()).filter(Boolean);
+  const remarks = String(formData.get("remarks") || "").trim();
+
+  const payload = { name, protectionLevel, commonRoutes, remarks };
+
+  try {
+    if (state.editingSpeciesId) {
+      await api(`/api/admin/species/${encodeURIComponent(state.editingSpeciesId)}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      });
+      alert("物种信息已更新。");
+    } else {
+      await api("/api/admin/species", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      alert("物种已添加。");
+    }
+
+    resetSpeciesForm();
+    await loadSpeciesAndRoutes();
+  } catch (error) {
+    showSpeciesFormError(error);
+  }
+}
+
+async function handleSpeciesEdit(event) {
+  const speciesId = event.target.dataset.edit;
+  if (!speciesId) return;
+
+  event.preventDefault();
+
+  try {
+    const result = await api(`/api/admin/species/${encodeURIComponent(speciesId)}`);
+    populateSpeciesForm(result.species);
+    document.querySelector(".species-form").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function handleSpeciesDelete(event) {
+  const speciesId = event.target.dataset.delete;
+  if (!speciesId) return;
+
+  event.preventDefault();
+
+  const species = state.allSpecies.find(s => s.id === speciesId);
+  if (!species) return;
+
+  if (!confirm(`确定要删除物种「${species.name}」吗？此操作不可恢复。`)) {
+    return;
+  }
+
+  try {
+    await api(`/api/admin/species/${encodeURIComponent(speciesId)}`, {
+      method: "DELETE"
+    });
+
+    if (state.editingSpeciesId === speciesId) {
+      resetSpeciesForm();
+    }
+
+    await loadSpeciesAndRoutes();
+    alert("物种已删除。");
+  } catch (error) {
+    alert(error.message);
+  }
 }
 
 function renderHistory(history = []) {
@@ -312,6 +544,8 @@ async function loadAdmin() {
     ? alerts.alerts.map(renderAlert).join("")
     : '<p style="color:var(--muted);padding:20px;text-align:center;">暂无符合条件的告警事件</p>';
   $("#stations").innerHTML = stations.stations.map(renderStation).join("");
+
+  await loadSpeciesAndRoutes();
 }
 
 $("#loginForm").addEventListener("submit", async (event) => {
@@ -494,6 +728,28 @@ if (resetAlertFilters) {
       filterArea.value = "all";
     }
     loadAdmin();
+  });
+}
+
+const speciesForm = $("#speciesForm");
+if (speciesForm) {
+  speciesForm.addEventListener("submit", handleSpeciesSubmit);
+  speciesForm.addEventListener("input", hideSpeciesFormError);
+}
+
+const speciesCancelBtn = $("#speciesCancelBtn");
+if (speciesCancelBtn) {
+  speciesCancelBtn.addEventListener("click", resetSpeciesForm);
+}
+
+const speciesList = $("#speciesList");
+if (speciesList) {
+  speciesList.addEventListener("click", (event) => {
+    if (event.target.dataset.edit) {
+      handleSpeciesEdit(event);
+    } else if (event.target.dataset.delete) {
+      handleSpeciesDelete(event);
+    }
   });
 }
 

@@ -120,12 +120,21 @@
           <span>巡护员可提交</span>
         </div>
         <form class="observation-form" id="observationForm">
-          <input name="species" placeholder="鸟种，如 白鹤" required>
+          <select name="species" id="speciesSelect" required>
+            <option value="">请选择鸟种（从重点物种清单）</option>
+          </select>
           <input name="count" type="number" min="1" placeholder="数量" required>
           <input name="location" placeholder="观测地点" required>
           <select name="route" id="routeSelect" required>
             <option value="">请选择迁飞路线</option>
           </select>
+          <div class="species-info-box" id="speciesInfoBox" hidden>
+            <div class="species-info-header">
+              <span class="species-info-name" id="speciesInfoName"></span>
+              <span class="species-info-level" id="speciesInfoLevel"></span>
+            </div>
+            <p class="species-info-remarks" id="speciesInfoRemarks"></p>
+          </div>
           <div class="form-error-box" id="obsFormError" hidden></div>
           <button type="submit">提交记录</button>
         </form>

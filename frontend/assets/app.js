@@ -2,6 +2,7 @@ const state = {
   token: localStorage.getItem("mb_token"),
   user: JSON.parse(localStorage.getItem("mb_user") || "null"),
   allRoutes: [],
+  allSpecies: [],
   filters: {
     risk: "all",
     season: "all",
@@ -64,6 +65,19 @@ function renderRoute(route) {
 
 function riskLabel(risk) {
   return { high: "高风险", medium: "中风险", low: "低风险" }[risk] || "未知";
+}
+
+function protectionLevelClass(level) {
+  return {
+    "国家一级": "high",
+    "国家二级": "medium",
+    "三有保护": "low",
+    "无": ""
+  }[level] || "";
+}
+
+function protectionLevelLabel(level) {
+  return level || "无";
 }
 
 function renderRouteDetail(route) {
@@ -597,18 +611,102 @@ function populateRouteSelect() {
   }
 }
 
+function populateSpeciesSelect() {
+  const speciesSelect = $("#speciesSelect");
+  if (!speciesSelect) return;
+
+  const currentValue = speciesSelect.value;
+  speciesSelect.innerHTML = '<option value="">请选择鸟种（从重点物种清单）</option>';
+
+  if (state.allSpecies.length === 0) {
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = "（暂无重点物种，请先在后台管理添加）";
+    emptyOption.disabled = true;
+    speciesSelect.appendChild(emptyOption);
+    return;
+  }
+
+  const sortedSpecies = state.allSpecies.slice().sort((a, b) => {
+    const levelOrder = { "国家一级": 0, "国家二级": 1, "三有保护": 2, "无": 3 };
+    return (levelOrder[a.protectionLevel] || 4) - (levelOrder[b.protectionLevel] || 4);
+  });
+
+  sortedSpecies.forEach((species) => {
+    const option = document.createElement("option");
+    option.value = species.name;
+    option.textContent = `${species.name}（${protectionLevelLabel(species.protectionLevel)}）`;
+    option.dataset.protectionLevel = species.protectionLevel;
+    option.dataset.remarks = species.remarks || "";
+    option.dataset.commonRoutes = (species.commonRoutes || []).join(",");
+    speciesSelect.appendChild(option);
+  });
+
+  if (currentValue) {
+    speciesSelect.value = currentValue;
+  }
+}
+
+function showSpeciesInfo(speciesName) {
+  const infoBox = $("#speciesInfoBox");
+  if (!infoBox) return;
+
+  if (!speciesName) {
+    infoBox.hidden = true;
+    return;
+  }
+
+  const species = state.allSpecies.find((s) => s.name === speciesName);
+  if (!species) {
+    infoBox.hidden = true;
+    return;
+  }
+
+  const levelClass = protectionLevelClass(species.protectionLevel);
+  $("#speciesInfoName").textContent = species.name;
+  const levelSpan = $("#speciesInfoLevel");
+  levelSpan.textContent = protectionLevelLabel(species.protectionLevel);
+  levelSpan.className = `species-info-level tag ${levelClass}`;
+
+  const remarksEl = $("#speciesInfoRemarks");
+  if (species.remarks) {
+    remarksEl.textContent = species.remarks;
+    remarksEl.hidden = false;
+  } else {
+    remarksEl.hidden = true;
+  }
+
+  infoBox.hidden = false;
+}
+
+function suggestRouteBySpecies(speciesName) {
+  const routeSelect = $("#routeSelect");
+  if (!routeSelect || routeSelect.value) return;
+
+  const species = state.allSpecies.find((s) => s.name === speciesName);
+  if (!species || !species.commonRoutes || species.commonRoutes.length === 0) return;
+
+  const firstCommonRoute = species.commonRoutes[0];
+  if (state.allRoutes.some((r) => r.name === firstCommonRoute)) {
+    routeSelect.value = firstCommonRoute;
+  }
+}
+
 let routeEventsBound = false;
+let speciesEventsBound = false;
 
 async function loadDashboard() {
   if (!state.token) return;
-  const [overview, alerts, observations, health] = await Promise.all([
+  const [overview, alerts, observations, health, speciesData] = await Promise.all([
     api("/api/overview"),
     api("/api/alerts"),
     api("/api/observations"),
-    api("/api/stations/health")
+    api("/api/stations/health"),
+    api("/api/species")
   ]);
 
   state.allRoutes = overview.routes;
+  state.allSpecies = speciesData.speciesList;
   $("#metrics").innerHTML = overview.metrics.map(renderMetric).join("");
 
   if (overview.announcements && overview.announcements.length > 0) {
@@ -621,16 +719,32 @@ async function loadDashboard() {
 
   populateFilterOptions();
   populateRouteSelect();
+  populateSpeciesSelect();
   bindFilterEvents();
   if (!routeEventsBound) {
     bindRouteClickEvents();
     routeEventsBound = true;
+  }
+  if (!speciesEventsBound) {
+    bindSpeciesEvents();
+    speciesEventsBound = true;
   }
   applyFilters();
   $("#alerts").innerHTML = alerts.alerts.map(renderAlert).join("");
   $("#healthSummary").innerHTML = renderHealthSummary(health.summary);
   $("#stations").innerHTML = overview.stations.map(renderStation).join("");
   $("#observations").innerHTML = observations.observations.map(renderObservation).join("");
+}
+
+function bindSpeciesEvents() {
+  const speciesSelect = $("#speciesSelect");
+  if (!speciesSelect) return;
+
+  speciesSelect.addEventListener("change", (event) => {
+    const speciesName = event.target.value;
+    showSpeciesInfo(speciesName);
+    suggestRouteBySpecies(speciesName);
+  });
 }
 
 $("#loginForm").addEventListener("submit", async (event) => {
