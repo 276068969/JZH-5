@@ -276,7 +276,140 @@ function stationStatusLabel(status) {
 
 function renderHealthSummary(summary) {
   const onlinePercent = summary.total > 0 ? Math.round((summary.online / summary.total) * 100) : 0;
+  const warningPercent = summary.total > 0 ? Math.round((summary.warning / summary.total) * 100) : 0;
+  const offlinePercent = summary.total > 0 ? Math.round((summary.offline / summary.total) * 100) : 0;
+
+  const RADIUS = 70;
+  const CIRC = 2 * Math.PI * RADIUS;
+  const onlineDash = (summary.online / summary.total) * CIRC;
+  const warningDash = (summary.warning / summary.total) * CIRC;
+  const offlineDash = (summary.offline / summary.total) * CIRC;
+
+  const bd = summary.batteryDistribution || { critical: 0, low: 0, medium: 0, good: 0, unknown: 0 };
+  const bdTotal = bd.critical + bd.low + bd.medium + bd.good + bd.unknown || 1;
+
   return `
+    <div class="health-visual-grid">
+      <div class="status-distribution-card">
+        <h3 class="section-subtitle">📊 站点状态分布</h3>
+        <div class="status-distribution-body">
+          <div class="donut-chart-wrap">
+            <svg class="donut-chart" viewBox="0 0 180 180" aria-hidden="true">
+              <circle class="donut-track" cx="90" cy="90" r="${RADIUS}" />
+              <circle class="donut-segment donut-online" cx="90" cy="90" r="${RADIUS}"
+                stroke-dasharray="${onlineDash} ${CIRC}"
+                stroke-dashoffset="0"
+                transform="rotate(-90 90 90)" />
+              <circle class="donut-segment donut-warning" cx="90" cy="90" r="${RADIUS}"
+                stroke-dasharray="${warningDash} ${CIRC}"
+                stroke-dashoffset="-${onlineDash}"
+                transform="rotate(-90 90 90)" />
+              <circle class="donut-segment donut-offline" cx="90" cy="90" r="${RADIUS}"
+                stroke-dasharray="${offlineDash} ${CIRC}"
+                stroke-dashoffset="-${onlineDash + warningDash}"
+                transform="rotate(-90 90 90)" />
+            </svg>
+            <div class="donut-center">
+              <span class="donut-total">${summary.total}</span>
+              <span class="donut-label">站点总数</span>
+            </div>
+          </div>
+          <div class="status-legend">
+            <div class="legend-item">
+              <span class="legend-dot online"></span>
+              <span class="legend-label">在线</span>
+              <span class="legend-count">${summary.online}</span>
+              <span class="legend-percent">${onlinePercent}%</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot warning"></span>
+              <span class="legend-label">告警</span>
+              <span class="legend-count">${summary.warning}</span>
+              <span class="legend-percent">${warningPercent}%</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot offline"></span>
+              <span class="legend-label">离线</span>
+              <span class="legend-count">${summary.offline}</span>
+              <span class="legend-percent">${offlinePercent}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="battery-distribution-card">
+        <h3 class="section-subtitle">🔋 电量分布</h3>
+        <div class="battery-stats-row">
+          <div class="battery-stat-main">
+            <span class="battery-main-label">平均电量</span>
+            <strong class="battery-main-value ${summary.avgBattery < 40 ? 'text-danger' : summary.avgBattery < 70 ? 'text-warn' : 'text-ok'}">${summary.avgBattery}%</strong>
+          </div>
+          <div class="battery-alert-mini">
+            ${summary.criticalBattery > 0 ? `<span class="mini-alert critical">⚠ ${summary.criticalBattery} 站严重低电</span>` : ''}
+            ${summary.lowBattery > 0 ? `<span class="mini-alert low">⚡ ${summary.lowBattery} 站低电量</span>` : ''}
+          </div>
+        </div>
+        <div class="battery-bars">
+          <div class="battery-bar-row">
+            <span class="battery-bar-label">严重低电 &lt;20%</span>
+            <div class="battery-bar-track">
+              <div class="battery-bar-fill critical" style="width: ${(bd.critical / bdTotal) * 100}%"></div>
+            </div>
+            <span class="battery-bar-count">${bd.critical}</span>
+          </div>
+          <div class="battery-bar-row">
+            <span class="battery-bar-label">低电量 20-40%</span>
+            <div class="battery-bar-track">
+              <div class="battery-bar-fill low" style="width: ${(bd.low / bdTotal) * 100}%"></div>
+            </div>
+            <span class="battery-bar-count">${bd.low}</span>
+          </div>
+          <div class="battery-bar-row">
+            <span class="battery-bar-label">中等 40-70%</span>
+            <div class="battery-bar-track">
+              <div class="battery-bar-fill medium" style="width: ${(bd.medium / bdTotal) * 100}%"></div>
+            </div>
+            <span class="battery-bar-count">${bd.medium}</span>
+          </div>
+          <div class="battery-bar-row">
+            <span class="battery-bar-label">良好 ≥70%</span>
+            <div class="battery-bar-track">
+              <div class="battery-bar-fill good" style="width: ${(bd.good / bdTotal) * 100}%"></div>
+            </div>
+            <span class="battery-bar-count">${bd.good}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    ${summary.lowBatteryStations && summary.lowBatteryStations.length > 0 ? `
+      <div class="low-battery-panel">
+        <div class="low-battery-header">
+          <h3 class="section-subtitle danger">🚨 低电量站点预警</h3>
+          <span class="low-battery-count">${summary.lowBatteryStations.length} 个站点需关注</span>
+        </div>
+        <div class="low-battery-grid">
+          ${summary.lowBatteryStations.map(station => `
+            <div class="low-battery-card ${station.battery < 20 ? 'critical' : 'low'}">
+              <div class="low-battery-card-head">
+                <strong>${station.name}</strong>
+                <span class="battery-level-badge ${station.battery < 20 ? 'critical' : 'low'}">
+                  ${station.battery < 20 ? '🔴' : '🟠'} ${station.battery}%
+                </span>
+              </div>
+              <div class="low-battery-info">
+                ${station.location ? `<span class="lb-info-item">📍 ${station.location}</span>` : ''}
+                <span class="lb-info-item tag ${station.status}">${stationStatusLabel(station.status)}</span>
+              </div>
+              <div class="low-battery-footer">
+                最后上报 ${station.lastReportedAt ? fmtTime(station.lastReportedAt) : '—'}
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    ` : ''}
+
     <div class="health-stats">
       <div class="health-stat-card">
         <div class="health-stat-icon online">✓</div>

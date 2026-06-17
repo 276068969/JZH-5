@@ -153,9 +153,11 @@ function getStationHealthSummary(stations) {
   const warning = stations.filter((s) => s.status === "warning").length;
   const offline = stations.filter((s) => s.status === "offline").length;
   const lowBattery = stations.filter((s) => s.battery !== null && s.battery < 40).length;
-  const avgBattery = stations
-    .filter((s) => s.battery !== null)
-    .reduce((sum, s) => sum + s.battery, 0) / (stations.filter((s) => s.battery !== null).length || 1);
+  const criticalBattery = stations.filter((s) => s.battery !== null && s.battery < 20).length;
+  const stationsWithBattery = stations.filter((s) => s.battery !== null);
+  const avgBattery = stationsWithBattery.length > 0
+    ? stationsWithBattery.reduce((sum, s) => sum + s.battery, 0) / stationsWithBattery.length
+    : 0;
   const abnormalStations = stations.filter((s) => s.status !== "online").map((s) => ({
     id: s.id,
     name: s.name,
@@ -164,6 +166,24 @@ function getStationHealthSummary(stations) {
     abnormalReason: s.abnormalReason,
     lastReportedAt: s.lastReportedAt
   }));
+  const lowBatteryStations = stations
+    .filter((s) => s.battery !== null && s.battery < 40)
+    .sort((a, b) => a.battery - b.battery)
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      status: s.status,
+      battery: s.battery,
+      lastReportedAt: s.lastReportedAt,
+      location: s.location
+    }));
+  const batteryDistribution = {
+    critical: stations.filter((s) => s.battery !== null && s.battery < 20).length,
+    low: stations.filter((s) => s.battery !== null && s.battery >= 20 && s.battery < 40).length,
+    medium: stations.filter((s) => s.battery !== null && s.battery >= 40 && s.battery < 70).length,
+    good: stations.filter((s) => s.battery !== null && s.battery >= 70).length,
+    unknown: stations.filter((s) => s.battery === null).length
+  };
 
   return {
     total,
@@ -171,8 +191,11 @@ function getStationHealthSummary(stations) {
     warning,
     offline,
     lowBattery,
+    criticalBattery,
     avgBattery: Math.round(avgBattery),
-    abnormalStations
+    abnormalStations,
+    lowBatteryStations,
+    batteryDistribution
   };
 }
 
