@@ -216,7 +216,30 @@ async function handleApi(req, res) {
     if (req.method === "GET" && url.pathname === "/api/alerts") {
       const user = requireUser(req, res);
       if (!user) return;
-      return sendJson(res, 200, { alerts: data.alerts });
+      const statusFilter = url.searchParams.get("status");
+      const levelFilter = url.searchParams.get("level");
+      const areaFilter = url.searchParams.get("area");
+      let filteredAlerts = data.alerts.slice();
+      if (statusFilter) {
+        const statuses = statusFilter.split(",").map((s) => s.trim()).filter(Boolean);
+        if (statuses.length > 0) {
+          filteredAlerts = filteredAlerts.filter((alert) => statuses.includes(alert.status));
+        }
+      }
+      if (levelFilter) {
+        const levels = levelFilter.split(",").map((l) => l.trim()).filter(Boolean);
+        if (levels.length > 0) {
+          filteredAlerts = filteredAlerts.filter((alert) => levels.includes(alert.level));
+        }
+      }
+      if (areaFilter) {
+        const areas = areaFilter.split(",").map((a) => a.trim()).filter(Boolean);
+        if (areas.length > 0) {
+          filteredAlerts = filteredAlerts.filter((alert) => areas.includes(alert.area));
+        }
+      }
+      filteredAlerts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return sendJson(res, 200, { alerts: filteredAlerts });
     }
 
     if (req.method === "PATCH" && url.pathname.startsWith("/api/admin/alerts/")) {

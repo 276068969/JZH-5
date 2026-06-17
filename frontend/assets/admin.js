@@ -3,7 +3,13 @@ const state = {
   user: JSON.parse(localStorage.getItem("mb_user") || "null"),
   expandedAlerts: new Set(),
   expandedStations: new Set(),
-  stationDetails: {}
+  stationDetails: {},
+  alertFilters: {
+    status: "all",
+    level: "all",
+    area: "all"
+  },
+  allAlerts: []
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -259,13 +265,52 @@ function renderStation(station) {
   `;
 }
 
+function buildAlertQueryString() {
+  const params = new URLSearchParams();
+  if (state.alertFilters.status !== "all") {
+    params.set("status", state.alertFilters.status);
+  }
+  if (state.alertFilters.level !== "all") {
+    params.set("level", state.alertFilters.level);
+  }
+  if (state.alertFilters.area !== "all") {
+    params.set("area", state.alertFilters.area);
+  }
+  const qs = params.toString();
+  return qs ? `/api/alerts?${qs}` : "/api/alerts";
+}
+
+function populateAreaOptions() {
+  const areaSelect = $("#filterArea");
+  if (!areaSelect) return;
+  const areas = [...new Set(state.allAlerts.map((a) => a.area))].sort();
+  const currentValue = areaSelect.value;
+  areaSelect.innerHTML = '<option value="all">全部区域</option>';
+  areas.forEach((area) => {
+    const opt = document.createElement("option");
+    opt.value = area;
+    opt.textContent = area;
+    areaSelect.appendChild(opt);
+  });
+  if (currentValue) {
+    areaSelect.value = currentValue;
+  }
+}
+
 async function loadAdmin() {
   if (!state.token) return;
   const [alerts, stations] = await Promise.all([
-    api("/api/alerts"),
+    api(buildAlertQueryString()),
     api("/api/admin/stations")
   ]);
-  $("#alerts").innerHTML = alerts.alerts.map(renderAlert).join("");
+  if (state.allAlerts.length === 0) {
+    const allAlertsResult = await api("/api/alerts");
+    state.allAlerts = allAlertsResult.alerts;
+    populateAreaOptions();
+  }
+  $("#alerts").innerHTML = alerts.alerts.length > 0
+    ? alerts.alerts.map(renderAlert).join("")
+    : '<p style="color:var(--muted);padding:20px;text-align:center;">暂无符合条件的告警事件</p>';
   $("#stations").innerHTML = stations.stations.map(renderStation).join("");
 }
 
@@ -414,6 +459,43 @@ $("#logoutBtn").addEventListener("click", () => {
   localStorage.removeItem("mb_user");
   location.reload();
 });
+
+document.querySelectorAll("#alertFilters .filter-chips").forEach((chipGroup) => {
+  chipGroup.addEventListener("click", (event) => {
+    const chip = event.target.closest(".chip");
+    if (!chip) return;
+    const filterType = chipGroup.dataset.filter;
+    const value = chip.dataset.value;
+    chipGroup.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+    chip.classList.add("active");
+    state.alertFilters[filterType] = value;
+    loadAdmin();
+  });
+});
+
+const filterArea = $("#filterArea");
+if (filterArea) {
+  filterArea.addEventListener("change", (event) => {
+    state.alertFilters.area = event.target.value;
+    loadAdmin();
+  });
+}
+
+const resetAlertFilters = $("#resetAlertFilters");
+if (resetAlertFilters) {
+  resetAlertFilters.addEventListener("click", () => {
+    state.alertFilters = { status: "all", level: "all", area: "all" };
+    document.querySelectorAll("#alertFilters .filter-chips").forEach((chipGroup) => {
+      chipGroup.querySelectorAll(".chip").forEach((c) => {
+        c.classList.toggle("active", c.dataset.value === "all");
+      });
+    });
+    if (filterArea) {
+      filterArea.value = "all";
+    }
+    loadAdmin();
+  });
+}
 
 loadAdmin().catch(() => {
   $("#loginMsg").textContent = "请使用管理员或巡护员账号登录。";

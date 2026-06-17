@@ -46,6 +46,36 @@
           <h2>告警处置台</h2>
           <span>按事件闭环</span>
         </div>
+        <div class="filter-panel" id="alertFilters">
+          <div class="filter-group">
+            <label>处置状态</label>
+            <div class="filter-chips" data-filter="status">
+              <span class="chip active" data-value="all">全部</span>
+              <span class="chip" data-value="open"><span class="dot"></span> 待处理</span>
+              <span class="chip" data-value="processing"><span class="dot"></span> 处理中</span>
+              <span class="chip" data-value="resolved"><span class="dot"></span> 已闭环</span>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label>风险等级</label>
+            <div class="filter-chips" data-filter="level">
+              <span class="chip active" data-value="all">全部</span>
+              <span class="chip" data-value="高"><span class="dot high"></span> 高风险</span>
+              <span class="chip" data-value="中"><span class="dot medium"></span> 中风险</span>
+              <span class="chip" data-value="低"><span class="dot low"></span> 低风险</span>
+            </div>
+          </div>
+          <div class="filter-group">
+            <label>所属区域</label>
+            <select id="filterArea">
+              <option value="all">全部区域</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>&nbsp;</label>
+            <button class="reset-btn" id="resetAlertFilters">重置筛选</button>
+          </div>
+        </div>
         <div id="alerts" class="admin-table"></div>
       </div>
 
