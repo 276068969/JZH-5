@@ -147,6 +147,35 @@ function getObservationStatistics(observations) {
   };
 }
 
+function getStationHealthSummary(stations) {
+  const total = stations.length;
+  const online = stations.filter((s) => s.status === "online").length;
+  const warning = stations.filter((s) => s.status === "warning").length;
+  const offline = stations.filter((s) => s.status === "offline").length;
+  const lowBattery = stations.filter((s) => s.battery !== null && s.battery < 40).length;
+  const avgBattery = stations
+    .filter((s) => s.battery !== null)
+    .reduce((sum, s) => sum + s.battery, 0) / (stations.filter((s) => s.battery !== null).length || 1);
+  const abnormalStations = stations.filter((s) => s.status !== "online").map((s) => ({
+    id: s.id,
+    name: s.name,
+    status: s.status,
+    battery: s.battery,
+    abnormalReason: s.abnormalReason,
+    lastReportedAt: s.lastReportedAt
+  }));
+
+  return {
+    total,
+    online,
+    warning,
+    offline,
+    lowBattery,
+    avgBattery: Math.round(avgBattery),
+    abnormalStations
+  };
+}
+
 async function handleApi(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const data = readStore();
@@ -262,6 +291,22 @@ async function handleApi(req, res) {
       const user = requireUser(req, res, ["admin", "ranger"]);
       if (!user) return;
       return sendJson(res, 200, { stations: data.stations });
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/api/admin/stations/")) {
+      const user = requireUser(req, res, ["admin", "ranger"]);
+      if (!user) return;
+      const id = decodeURIComponent(url.pathname.split("/").pop());
+      const station = data.stations.find((s) => s.id === id);
+      if (!station) return sendJson(res, 404, { message: "监测站不存在。" });
+      return sendJson(res, 200, { station });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/stations/health") {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const summary = getStationHealthSummary(data.stations);
+      return sendJson(res, 200, { summary });
     }
 
     if (req.method === "POST" && url.pathname === "/api/admin/broadcasts") {

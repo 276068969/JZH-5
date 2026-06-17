@@ -1,7 +1,9 @@
 const state = {
   token: localStorage.getItem("mb_token"),
   user: JSON.parse(localStorage.getItem("mb_user") || "null"),
-  expandedAlerts: new Set()
+  expandedAlerts: new Set(),
+  expandedStations: new Set(),
+  stationDetails: {}
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -30,6 +32,18 @@ function fmtTime(value) {
 
 function statusLabel(status) {
   return { open: "待处理", processing: "处理中", resolved: "已闭环" }[status] || status;
+}
+
+function stationStatusLabel(status) {
+  return { online: "在线", warning: "告警", offline: "离线" }[status] || status;
+}
+
+function batteryLevel(battery) {
+  if (battery === null || battery === undefined) return { level: "unknown", text: "未知" };
+  if (battery < 20) return { level: "critical", text: "严重低电量" };
+  if (battery < 40) return { level: "low", text: "低电量" };
+  if (battery < 70) return { level: "medium", text: "中等" };
+  return { level: "good", text: "充足" };
 }
 
 function renderHistory(history = []) {
@@ -117,14 +131,130 @@ function renderAlert(alert) {
   `;
 }
 
-function renderStation(station) {
+function renderStationDetail(station) {
+  const battery = batteryLevel(station.battery);
   return `
-    <article class="admin-row">
-      <div>
-        <strong>${station.name}</strong>
-        <p>${station.status} · 温度 ${station.temperature}°C · 湿度 ${station.humidity}%</p>
+    <div class="station-detail-panel">
+      <div class="detail-highlight">
+        <div class="highlight-card risk-${station.status}">
+          <span class="highlight-label">运行状态</span>
+          <div class="highlight-value">
+            <span class="risk-badge ${station.status}">${stationStatusLabel(station.status)}</span>
+          </div>
+        </div>
+        <div class="highlight-card battery-${battery.level}">
+          <span class="highlight-label">电池状态</span>
+          <div class="highlight-value">
+            ${station.battery !== null ? `${station.battery}% · ${battery.text}` : "数据缺失"}
+          </div>
+        </div>
       </div>
-      <span class="tag ${station.status}">电量 ${station.battery}%</span>
+
+      <div class="detail-section">
+        <h4>环境指标</h4>
+        <div class="env-metrics">
+          <div class="env-item">
+            <span class="env-label">温度</span>
+            <span class="env-value">${station.temperature !== null ? `${station.temperature}°C` : "—"}</span>
+          </div>
+          <div class="env-item">
+            <span class="env-label">湿度</span>
+            <span class="env-value">${station.humidity !== null ? `${station.humidity}%` : "—"}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <h4>基本信息</h4>
+        <div class="detail-item">
+          <span class="detail-item-label">站点编号</span>
+          <span class="detail-item-value route-id">${station.id}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-item-label">所在位置</span>
+          <span class="detail-item-value">${station.location || "—"}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-item-label">安装时间</span>
+          <span class="detail-item-value">${station.installedAt ? fmtTime(station.installedAt).split(" ")[0] : "—"}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-item-label">最后上报</span>
+          <span class="detail-item-value">${station.lastReportedAt ? fmtTime(station.lastReportedAt) : "—"}</span>
+        </div>
+      </div>
+
+      ${station.equipment && station.equipment.length > 0 ? `
+        <div class="detail-section">
+          <h4>搭载设备</h4>
+          <div class="species-tags">
+            ${station.equipment.map(e => `<span class="species-tag">${e}</span>`).join("")}
+          </div>
+        </div>
+      ` : ""}
+
+      ${station.abnormalReason ? `
+        <div class="detail-section">
+          <h4>异常原因</h4>
+          <div class="abnormal-reason">
+            <span class="warning-icon">⚠️</span>
+            <p>${station.abnormalReason}</p>
+          </div>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function renderStation(station) {
+  const isExpanded = state.expandedStations.has(station.id);
+  const detail = state.stationDetails[station.id];
+  const battery = batteryLevel(station.battery);
+
+  return `
+    <article class="admin-row station-row" data-station-id="${station.id}">
+      <div class="station-main">
+        <div class="station-header">
+          <strong>${station.name}</strong>
+          <span class="tag ${station.status}">${stationStatusLabel(station.status)}</span>
+        </div>
+        <p class="station-meta">
+          ${station.location || "位置未设置"} · 最后上报 ${station.lastReportedAt ? fmtTime(station.lastReportedAt) : "—"}
+        </p>
+        <div class="station-summary">
+          <div class="summary-item">
+            <span class="summary-label">温度</span>
+            <span class="summary-value">${station.temperature !== null ? `${station.temperature}°C` : "—"}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">湿度</span>
+            <span class="summary-value">${station.humidity !== null ? `${station.humidity}%` : "—"}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">电量</span>
+            <span class="summary-value battery-${battery.level}">${station.battery !== null ? `${station.battery}%` : "—"}</span>
+          </div>
+        </div>
+        ${station.abnormalReason ? `
+          <div class="abnormal-banner">
+            <span class="warning-icon">⚠️</span>
+            <span>${station.abnormalReason.length > 60 ? station.abnormalReason.slice(0, 60) + "…" : station.abnormalReason}</span>
+          </div>
+        ` : ""}
+        <button class="toggle-history-btn" data-toggle-station="${station.id}">
+          ${isExpanded ? "收起健康档案 ▲" : "查看健康档案 ▼"}
+        </button>
+      </div>
+      <div class="station-actions">
+        <span class="tag battery-tag battery-${battery.level}">${station.battery !== null ? `${station.battery}%` : "—"}</span>
+      </div>
+      ${isExpanded && detail ? `
+        ${renderStationDetail(detail)}
+      ` : isExpanded ? `
+        <div class="station-detail-panel">
+          <p style="color: var(--muted); text-align: center; padding: 20px;">加载中...</p>
+        </div>
+      ` : ""}
     </article>
   `;
 }
@@ -211,6 +341,31 @@ $("#alerts").addEventListener("change", async (event) => {
   }
 
   state.expandedAlerts.add(id);
+  await loadAdmin();
+});
+
+$("#stations").addEventListener("click", async (event) => {
+  const toggleId = event.target.dataset.toggleStation;
+  if (!toggleId) return;
+
+  event.preventDefault();
+  if (state.expandedStations.has(toggleId)) {
+    state.expandedStations.delete(toggleId);
+    await loadAdmin();
+    return;
+  }
+
+  state.expandedStations.add(toggleId);
+  if (!state.stationDetails[toggleId]) {
+    try {
+      const result = await api(`/api/admin/stations/${encodeURIComponent(toggleId)}`);
+      state.stationDetails[toggleId] = result.station;
+    } catch (error) {
+      alert(error.message);
+      state.expandedStations.delete(toggleId);
+      return;
+    }
+  }
   await loadAdmin();
 });
 

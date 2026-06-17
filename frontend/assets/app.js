@@ -270,6 +270,81 @@ function statusLabel(status) {
   return { open: "待处理", processing: "处理中", resolved: "已闭环" }[status] || status;
 }
 
+function stationStatusLabel(status) {
+  return { online: "在线", warning: "告警", offline: "离线" }[status] || status;
+}
+
+function renderHealthSummary(summary) {
+  const onlinePercent = summary.total > 0 ? Math.round((summary.online / summary.total) * 100) : 0;
+  return `
+    <div class="health-stats">
+      <div class="health-stat-card">
+        <div class="health-stat-icon online">✓</div>
+        <div class="health-stat-info">
+          <span class="health-stat-label">在线站点</span>
+          <strong class="health-stat-value">${summary.online}<span class="health-stat-unit">/${summary.total}</span></strong>
+        </div>
+        <div class="health-stat-bar">
+          <div class="health-stat-bar-fill online" style="width: ${onlinePercent}%"></div>
+        </div>
+      </div>
+
+      <div class="health-stat-card">
+        <div class="health-stat-icon warning">⚠</div>
+        <div class="health-stat-info">
+          <span class="health-stat-label">告警站点</span>
+          <strong class="health-stat-value">${summary.warning}</strong>
+        </div>
+      </div>
+
+      <div class="health-stat-card">
+        <div class="health-stat-icon offline">✗</div>
+        <div class="health-stat-info">
+          <span class="health-stat-label">离线站点</span>
+          <strong class="health-stat-value">${summary.offline}</strong>
+        </div>
+      </div>
+
+      <div class="health-stat-card">
+        <div class="health-stat-icon battery">🔋</div>
+        <div class="health-stat-info">
+          <span class="health-stat-label">平均电量</span>
+          <strong class="health-stat-value">${summary.avgBattery}<span class="health-stat-unit">%</span></strong>
+        </div>
+        <div class="health-stat-bar">
+          <div class="health-stat-bar-fill ${summary.avgBattery < 40 ? 'low' : summary.avgBattery < 70 ? 'medium' : 'good'}" style="width: ${summary.avgBattery}%"></div>
+        </div>
+      </div>
+    </div>
+
+    ${summary.abnormalStations.length > 0 ? `
+      <div class="abnormal-list">
+        <h4 class="abnormal-list-title">⚠️ 需关注站点</h4>
+        <div class="abnormal-cards">
+          ${summary.abnormalStations.map(station => `
+            <div class="abnormal-card ${station.status}">
+              <div class="abnormal-card-header">
+                <strong>${station.name}</strong>
+                <span class="tag ${station.status}">${stationStatusLabel(station.status)}</span>
+              </div>
+              <p class="abnormal-card-reason">${station.abnormalReason || "暂无异常原因说明"}</p>
+              <div class="abnormal-card-meta">
+                ${station.battery !== null ? `<span>电量 ${station.battery}%</span>` : ""}
+                <span>最后上报 ${station.lastReportedAt ? fmtTime(station.lastReportedAt) : "—"}</span>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    ` : `
+      <div class="all-clear">
+        <span class="all-clear-icon">✅</span>
+        <span class="all-clear-text">所有站点运行正常，无需关注</span>
+      </div>
+    `}
+  `;
+}
+
 function renderAlert(alert) {
   const latestRemark = alert.remark ? alert.remark.length > 60 ? alert.remark.slice(0, 60) + "…" : alert.remark : null;
   const latestHandler = alert.handler || null;
@@ -309,13 +384,32 @@ function renderAlert(alert) {
 }
 
 function renderStation(station) {
+  const batteryClass = station.battery !== null && station.battery < 40 ? "battery-low" : "";
   return `
-    <article class="list-item">
-      <strong>${station.name}</strong>
-      <p>
-        <span class="tag ${station.status}">${station.status}</span>
-        ${station.temperature}°C · 湿度 ${station.humidity}% · 电量 ${station.battery}%
-      </p>
+    <article class="list-item station-card ${station.status} ${batteryClass}">
+      <div class="station-card-header">
+        <strong>${station.name}</strong>
+        <span class="tag ${station.status}">${stationStatusLabel(station.status)}</span>
+      </div>
+      <div class="station-card-metrics">
+        <div class="metric-item">
+          <span class="metric-label">温度</span>
+          <span class="metric-value">${station.temperature !== null ? `${station.temperature}°C` : "—"}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">湿度</span>
+          <span class="metric-value">${station.humidity !== null ? `${station.humidity}%` : "—"}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">电量</span>
+          <span class="metric-value ${station.battery !== null && station.battery < 40 ? 'text-danger' : ''}">${station.battery !== null ? `${station.battery}%` : "—"}</span>
+        </div>
+      </div>
+      ${station.lastReportedAt ? `
+        <p class="station-card-footer">
+          最后上报 ${fmtTime(station.lastReportedAt)}
+        </p>
+      ` : ""}
     </article>
   `;
 }
@@ -333,10 +427,11 @@ let routeEventsBound = false;
 
 async function loadDashboard() {
   if (!state.token) return;
-  const [overview, alerts, observations] = await Promise.all([
+  const [overview, alerts, observations, health] = await Promise.all([
     api("/api/overview"),
     api("/api/alerts"),
-    api("/api/observations")
+    api("/api/observations"),
+    api("/api/stations/health")
   ]);
 
   state.allRoutes = overview.routes;
@@ -349,6 +444,7 @@ async function loadDashboard() {
   }
   applyFilters();
   $("#alerts").innerHTML = alerts.alerts.map(renderAlert).join("");
+  $("#healthSummary").innerHTML = renderHealthSummary(health.summary);
   $("#stations").innerHTML = overview.stations.map(renderStation).join("");
   $("#observations").innerHTML = observations.observations.map(renderObservation).join("");
 }

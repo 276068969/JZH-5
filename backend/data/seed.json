@@ -30,10 +30,11 @@
     }
   ],
   "stations": [
-    { "id": "ST-101", "name": "鄱阳湖南矶站", "status": "online", "temperature": 24, "humidity": 76, "battery": 89 },
-    { "id": "ST-102", "name": "崇明东滩雷达站", "status": "online", "temperature": 22, "humidity": 81, "battery": 93 },
-    { "id": "ST-103", "name": "青海湖鸟岛站", "status": "warning", "temperature": 12, "humidity": 48, "battery": 37 },
-    { "id": "ST-104", "name": "黄河三角洲声纹站", "status": "online", "temperature": 25, "humidity": 70, "battery": 82 }
+    { "id": "ST-101", "name": "鄱阳湖南矶站", "status": "online", "temperature": 24, "humidity": 76, "battery": 89, "lastReportedAt": "2026-06-17T08:15:00.000Z", "abnormalReason": null, "location": "鄱阳湖国家级自然保护区", "installedAt": "2024-03-15T00:00:00.000Z", "equipment": ["红外相机", "气象传感器", "声纹识别"] },
+    { "id": "ST-102", "name": "崇明东滩雷达站", "status": "online", "temperature": 22, "humidity": 81, "battery": 93, "lastReportedAt": "2026-06-17T08:12:00.000Z", "abnormalReason": null, "location": "崇明东滩鸟类国家级自然保护区", "installedAt": "2023-11-20T00:00:00.000Z", "equipment": ["雷达监测", "高清摄像头", "气象站"] },
+    { "id": "ST-103", "name": "青海湖鸟岛站", "status": "warning", "temperature": 12, "humidity": 48, "battery": 37, "lastReportedAt": "2026-06-17T06:30:00.000Z", "abnormalReason": "太阳能供电不足，连续阴雨导致电池电量低于40%阈值", "location": "青海湖国家级自然保护区", "installedAt": "2024-05-08T00:00:00.000Z", "equipment": ["红外相机", "温湿度传感器", "电池监测"] },
+    { "id": "ST-104", "name": "黄河三角洲声纹站", "status": "online", "temperature": 25, "humidity": 70, "battery": 82, "lastReportedAt": "2026-06-17T08:10:00.000Z", "abnormalReason": null, "location": "黄河三角洲国家级自然保护区", "installedAt": "2024-01-10T00:00:00.000Z", "equipment": ["声纹识别阵列", "气象传感器", "红外相机"] },
+    { "id": "ST-105", "name": "丹东鸭绿江口站", "status": "offline", "temperature": null, "humidity": null, "battery": 12, "lastReportedAt": "2026-06-15T14:20:00.000Z", "abnormalReason": "设备离线超过48小时，疑似通信模块故障或供电中断，已安排巡护员现场排查", "location": "鸭绿江口滨海湿地国家级自然保护区", "installedAt": "2023-09-12T00:00:00.000Z", "equipment": ["高清摄像头", "气象传感器", "红外相机"] }
   ],
   "alerts": [
     {
