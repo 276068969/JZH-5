@@ -363,13 +363,11 @@ async function handleApi(req, res) {
         const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
         const recentDuplicate = data.observations.find((obs) => {
           const recordedAt = new Date(obs.recordedAt);
-          return obs.location === location &&
-                 obs.species === species &&
-                 recordedAt >= fiveMinutesAgo;
+          return obs.location === location && recordedAt >= fiveMinutesAgo;
         });
         if (recentDuplicate) {
           const timeDiff = Math.round((now - new Date(recentDuplicate.recordedAt)) / 1000 / 60);
-          errors.push(`同一地点「${location}」在 ${timeDiff} 分钟内已上报过「${species}」，短时间内请勿重复上报。如需补充，请在 5 分钟后再次提交。`);
+          errors.push(`同一地点「${location}」在 ${timeDiff} 分钟内已有观测记录上报，短时间内请勿重复提交。如需补充，请在 5 分钟后再次提交。`);
         }
       }
 
