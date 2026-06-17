@@ -268,10 +268,33 @@ async function handleApi(req, res) {
       const user = requireUser(req, res, ["admin"]);
       if (!user) return;
       const body = await readBody(req);
+      const title = String(body.title || "").trim();
+      const content = String(body.content || "").trim();
+      const errors = [];
+      if (!title) {
+        errors.push("通知标题不能为空，请输入有效的标题内容。");
+      } else if (title.length < 2) {
+        errors.push("通知标题过短，至少需要 2 个字符，请补充完整。");
+      } else if (title.length > 48) {
+        errors.push(`通知标题过长，当前 ${title.length} 字符，最多允许 48 字符，请精简。`);
+      }
+      if (!content) {
+        errors.push("通知内容不能为空，请输入具体的监管要求。");
+      } else if (content.length < 5) {
+        errors.push("通知内容过短，至少需要 5 个字符，请详细描述监管事项。");
+      } else if (content.length > 180) {
+        errors.push(`通知内容过长，当前 ${content.length} 字符，最多允许 180 字符，请精简。`);
+      }
+      if (errors.length > 0) {
+        return sendJson(res, 400, {
+          message: "监管通知发布失败，请检查以下问题：",
+          errors: errors
+        });
+      }
       const broadcast = {
         id: nextId("BRC", data.broadcasts),
-        title: String(body.title || "迁徙监管通知").slice(0, 48),
-        content: String(body.content || "请各保护站加强巡护。").slice(0, 180),
+        title: title,
+        content: content,
         publisher: user.name,
         createdAt: new Date().toISOString()
       };
