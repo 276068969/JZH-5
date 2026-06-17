@@ -115,13 +115,40 @@
           <input name="species" placeholder="鸟种，如 白鹤" required>
           <input name="count" type="number" min="1" placeholder="数量" required>
           <input name="location" placeholder="观测地点" required>
-          <select name="route">
-            <option>东亚-澳大利西亚路线</option>
-            <option>中亚迁飞路线</option>
-            <option>西太平洋沿海路线</option>
+          <select name="route" id="routeSelect" required>
+            <option value="">请选择迁飞路线</option>
           </select>
           <button type="submit">提交记录</button>
         </form>
+
+        <div class="confirmation-summary" id="confirmationSummary" hidden>
+          <div class="summary-header">
+            <h3>请确认观测信息</h3>
+            <span class="summary-subtitle">提交前请核对以下信息</span>
+          </div>
+          <div class="summary-content">
+            <div class="summary-row">
+              <span class="summary-label">鸟种</span>
+              <span class="summary-value" id="confirmSpecies">-</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">数量</span>
+              <span class="summary-value" id="confirmCount">-</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">观测地点</span>
+              <span class="summary-value" id="confirmLocation">-</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">迁飞路线</span>
+              <span class="summary-value" id="confirmRoute">-</span>
+            </div>
+          </div>
+          <div class="summary-actions">
+            <button type="button" class="secondary-btn" id="cancelConfirm">返回修改</button>
+            <button type="button" class="primary-btn" id="confirmSubmit">确认提交</button>
+          </div>
+        </div>
         <div id="observations" class="stack"></div>
       </div>
     </section>

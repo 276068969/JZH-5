@@ -423,6 +423,28 @@ function renderObservation(item) {
   `;
 }
 
+function populateRouteSelect() {
+  const routeSelect = $("#routeSelect");
+  if (!routeSelect || state.allRoutes.length === 0) return;
+
+  const currentValue = routeSelect.value;
+  routeSelect.innerHTML = '<option value="">请选择迁飞路线</option>';
+
+  state.allRoutes.forEach((route) => {
+    const option = document.createElement("option");
+    option.value = route.name;
+    option.textContent = route.name;
+    if (route.risk) {
+      option.dataset.risk = route.risk;
+    }
+    routeSelect.appendChild(option);
+  });
+
+  if (currentValue) {
+    routeSelect.value = currentValue;
+  }
+}
+
 let routeEventsBound = false;
 
 async function loadDashboard() {
@@ -437,6 +459,7 @@ async function loadDashboard() {
   state.allRoutes = overview.routes;
   $("#metrics").innerHTML = overview.metrics.map(renderMetric).join("");
   populateFilterOptions();
+  populateRouteSelect();
   bindFilterEvents();
   if (!routeEventsBound) {
     bindRouteClickEvents();
@@ -474,18 +497,59 @@ $("#logoutBtn").addEventListener("click", () => {
   location.reload();
 });
 
-$("#observationForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const form = new FormData(event.currentTarget);
+let pendingFormData = null;
+
+function showConfirmation(formData) {
+  $("#confirmSpecies").textContent = formData.species || "-";
+  $("#confirmCount").textContent = formData.count ? `${formData.count} 只` : "-";
+  $("#confirmLocation").textContent = formData.location || "-";
+  $("#confirmRoute").textContent = formData.route || "-";
+
+  $("#observationForm").hidden = true;
+  $("#confirmationSummary").hidden = false;
+}
+
+function hideConfirmation() {
+  $("#confirmationSummary").hidden = true;
+  $("#observationForm").hidden = false;
+}
+
+async function submitObservation(formData) {
   try {
     await api("/api/observations", {
       method: "POST",
-      body: JSON.stringify(Object.fromEntries(form))
+      body: JSON.stringify(formData)
     });
-    event.currentTarget.reset();
+    $("#observationForm").reset();
+    hideConfirmation();
+    pendingFormData = null;
     await loadDashboard();
   } catch (error) {
     alert(error.message);
+  }
+}
+
+$("#observationForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const formData = Object.fromEntries(form);
+
+  if (!formData.species || !formData.count || !formData.location || !formData.route) {
+    return;
+  }
+
+  pendingFormData = formData;
+  showConfirmation(formData);
+});
+
+$("#cancelConfirm").addEventListener("click", () => {
+  hideConfirmation();
+  pendingFormData = null;
+});
+
+$("#confirmSubmit").addEventListener("click", () => {
+  if (pendingFormData) {
+    submitObservation(pendingFormData);
   }
 });
 

@@ -490,6 +490,99 @@ textarea:focus {
   grid-column: span 2;
 }
 
+.confirmation-summary {
+  background: linear-gradient(135deg, #f0f9f4 0%, #f5fbf8 100%);
+  border: 1px solid #c8e8d9;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.summary-header {
+  padding: 16px 18px;
+  border-bottom: 1px solid #c8e8d9;
+  background: rgba(15, 123, 108, 0.06);
+}
+
+.summary-header h3 {
+  color: var(--primary-dark);
+  font-size: 16px;
+  font-weight: 900;
+  margin: 0 0 4px 0;
+}
+
+.summary-subtitle {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.summary-content {
+  padding: 16px 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.summary-label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.summary-value {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.summary-actions {
+  display: flex;
+  gap: 10px;
+  padding: 14px 18px 18px;
+}
+
+.primary-btn,
+.secondary-btn {
+  flex: 1;
+  padding: 12px 16px;
+  font-weight: 800;
+  border-radius: 8px;
+  border: 0;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.primary-btn {
+  background: var(--primary);
+  color: white;
+}
+
+.primary-btn:hover {
+  background: var(--primary-dark);
+}
+
+.secondary-btn {
+  background: white;
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.secondary-btn:hover {
+  background: #f0f5f3;
+  color: var(--ink);
+}
+
 .admin-shell {
   align-items: start;
   display: grid;
@@ -580,6 +673,26 @@ textarea:focus {
   .observation-form button,
   .reset-btn {
     grid-column: span 1;
+  }
+
+  .summary-actions {
+    flex-direction: column;
+  }
+
+  .primary-btn,
+  .secondary-btn {
+    padding: 14px 16px;
+    font-size: 15px;
+  }
+
+  .summary-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .summary-value {
+    font-size: 15px;
   }
 }
 
