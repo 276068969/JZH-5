@@ -147,6 +147,117 @@ function getObservationStatistics(observations) {
   };
 }
 
+function getMigrationStage(progress, season) {
+  if (progress < 20) {
+    return {
+      code: "preparing",
+      label: "集结待命",
+      description: `${season}前期，候鸟正在越冬地/繁殖地集结，能量储备阶段。`
+    };
+  } else if (progress < 40) {
+    return {
+      code: "departing",
+      label: "出发初期",
+      description: `${season}已启动，候鸟群体开始分批启航，稳步推进中。`
+    };
+  } else if (progress < 60) {
+    return {
+      code: "midway",
+      label: "中途补给",
+      description: `${season}关键阶段，候鸟正处于中途补给期，依赖停歇地湿地资源。`
+    };
+  } else if (progress < 80) {
+    return {
+      code: "accelerating",
+      label: "加速推进",
+      description: `${season}进入后半程，候鸟体力充沛，加速向目的地推进。`
+    };
+  } else {
+    return {
+      code: "finishing",
+      label: "即将抵达",
+      description: `${season}接近尾声，先锋群体已抵达目的地，后续梯队跟进中。`
+    };
+  }
+}
+
+function getRiskWarning(risk, season, currentArea) {
+  const warnings = {
+    low: {
+      level: "低",
+      levelText: "整体平稳",
+      summary: "路线状况良好，栖息地环境稳定，按常规巡护计划执行即可。",
+      suggestions: [
+        "保持每日常规监测频次",
+        "重点关注停歇地水位变化",
+        "做好观测记录和数据上报"
+      ]
+    },
+    medium: {
+      level: "中",
+      levelText: "需加强关注",
+      summary: `当前${season}存在中度风险，${currentArea}周边需警惕人为干扰和栖息地变化。`,
+      suggestions: [
+        "增加巡护频次至每日两次",
+        "重点监测湿地生态指标",
+        "排查周边潜在人为活动干扰",
+        "准备应急处置预案"
+      ]
+    },
+    high: {
+      level: "高",
+      levelText: "高风险预警",
+      summary: `当前${season}面临高风险，${currentArea}区域需立即启动应急监测响应。`,
+      suggestions: [
+        "启动全天候应急监测机制",
+        "增派现场巡护人员值守",
+        "协调相关部门开展联合执法",
+        "每日上报风险评估情况",
+        "做好候鸟种群异常情况预案"
+      ]
+    }
+  };
+  return warnings[risk] || warnings.low;
+}
+
+function analyzeRouteProgress(route) {
+  const progress = Number(route.progress) || 0;
+  const risk = route.risk || "low";
+  const season = route.season || "迁徙期";
+  const currentArea = route.currentArea || "未知区域";
+
+  const stage = getMigrationStage(progress, season);
+  const warning = getRiskWarning(risk, season, currentArea);
+
+  const estimatedDays = Math.round((100 - progress) / 5);
+
+  const summaryText = `${route.name}当前处于${season}「${stage.label}」阶段，整体进度 ${progress}%，${warning.levelText}。预计还需约 ${estimatedDays} 天完成本阶段迁飞。`;
+
+  return {
+    routeId: route.id,
+    routeName: route.name,
+    season: season,
+    currentArea: currentArea,
+    species: route.species,
+    progress: {
+      value: progress,
+      stage: stage.code,
+      stageLabel: stage.label,
+      stageDescription: stage.description,
+      estimatedRemainingDays: estimatedDays,
+      completionText: progress >= 100 ? "本阶段迁徙已完成" : `已完成 ${progress}%`
+    },
+    risk: {
+      level: warning.level,
+      levelText: warning.levelText,
+      summary: warning.summary,
+      suggestions: warning.suggestions
+    },
+    summary: summaryText,
+    generatedAt: new Date().toISOString()
+  };
+}
+
 function getStationHealthSummary(stations) {
   const total = stations.length;
   const online = stations.filter((s) => s.status === "online").length;
@@ -234,6 +345,30 @@ async function handleApi(req, res) {
       const user = requireUser(req, res);
       if (!user) return;
       return sendJson(res, 200, { routes: data.routes });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/routes/progress") {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const analyses = data.routes.map(analyzeRouteProgress);
+      const overall = {
+        totalRoutes: data.routes.length,
+        highRiskCount: analyses.filter((a) => a.risk.level === "高").length,
+        mediumRiskCount: analyses.filter((a) => a.risk.level === "中").length,
+        lowRiskCount: analyses.filter((a) => a.risk.level === "低").length,
+        avgProgress: Math.round(analyses.reduce((sum, a) => sum + a.progress.value, 0) / analyses.length),
+        generatedAt: new Date().toISOString()
+      };
+      return sendJson(res, 200, { overall, analyses });
+    }
+
+    if (req.method === "GET" && url.pathname.startsWith("/api/routes/") && url.pathname.endsWith("/progress")) {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const id = decodeURIComponent(url.pathname.slice("/api/routes/".length, -"/progress".length));
+      const route = data.routes.find((r) => r.id === id || r.name === id);
+      if (!route) return sendJson(res, 404, { message: "路线不存在。" });
+      return sendJson(res, 200, { analysis: analyzeRouteProgress(route) });
     }
 
     if (req.method === "GET" && url.pathname === "/api/alerts") {
