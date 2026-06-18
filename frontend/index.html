@@ -43,10 +43,18 @@
       <div id="broadcasts" class="stack"></div>
     </section>
 
+    <section class="panel alerts-panel-mobile" id="alertsPanelMobile">
+      <div class="panel-head">
+        <h2>🚨 告警事件</h2>
+        <a href="/admin.html">去处置</a>
+      </div>
+      <div id="alertsMobile" class="stack"></div>
+    </section>
+
     <section class="metrics" id="metrics"></section>
 
-    <section class="grid-two">
-      <div class="panel map-panel">
+    <section class="main-content-grid">
+      <div class="panel map-panel route-panel">
         <div class="panel-head">
           <h2>迁飞路线</h2>
           <span id="routeCount">0 条路线</span>
@@ -88,35 +96,17 @@
         <div id="routes" class="route-list"></div>
       </div>
 
-      <div class="panel">
+      <div class="panel alerts-panel-desktop">
         <div class="panel-head">
           <h2>告警事件</h2>
           <a href="/admin.html">去处置</a>
         </div>
         <div id="alerts" class="stack"></div>
       </div>
-    </section>
 
-    <section class="panel health-summary-panel">
-      <div class="panel-head">
-        <h2>站点健康摘要</h2>
-        <span>实时监测</span>
-      </div>
-      <div id="healthSummary" class="health-summary"></div>
-    </section>
-
-    <section class="grid-two">
-      <div class="panel">
+      <div class="panel observation-panel">
         <div class="panel-head">
-          <h2>监测站状态</h2>
-          <span>自动上报</span>
-        </div>
-        <div id="stations" class="station-grid"></div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-head">
-          <h2>现场观测上报</h2>
+          <h2>📝 现场观测上报</h2>
           <span>巡护员可提交</span>
         </div>
         <form class="observation-form" id="observationForm">
@@ -136,7 +126,7 @@
             <p class="species-info-remarks" id="speciesInfoRemarks"></p>
           </div>
           <div class="form-error-box" id="obsFormError" hidden></div>
-          <button type="submit">提交记录</button>
+          <button type="submit" class="submit-observation-btn">📸 提交记录</button>
         </form>
 
         <div class="confirmation-summary" id="confirmationSummary" hidden>
@@ -169,6 +159,22 @@
         </div>
         <div id="observations" class="stack"></div>
       </div>
+
+      <div class="panel stations-panel">
+        <div class="panel-head">
+          <h2>监测站状态</h2>
+          <span>自动上报</span>
+        </div>
+        <div id="stations" class="station-grid"></div>
+      </div>
+    </section>
+
+    <section class="panel health-summary-panel">
+      <div class="panel-head">
+        <h2>站点健康摘要</h2>
+        <span>实时监测</span>
+      </div>
+      <div id="healthSummary" class="health-summary"></div>
     </section>
   </main>
 

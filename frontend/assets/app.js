@@ -43,9 +43,11 @@ function renderMetric(metric) {
   const sign = metric.delta > 0 ? "+" : "";
   return `
     <article class="metric-card">
-      <span>${metric.label}</span>
-      <strong>${metric.latest}${metric.unit}</strong>
-      <em>${sign}${metric.delta}${metric.unit} 较上一周期</em>
+      <div class="metric-info">
+        <span>${metric.label}</span>
+        <strong>${metric.latest}${metric.unit}</strong>
+        <em>${sign}${metric.delta}${metric.unit} 较上一周期</em>
+      </div>
     </article>
   `;
 }
@@ -500,9 +502,10 @@ function renderAlert(alert) {
   const latestRemark = alert.remark ? alert.remark.length > 60 ? alert.remark.slice(0, 60) + "…" : alert.remark : null;
   const latestHandler = alert.handler || null;
   const latestUpdate = alert.updatedAt ? fmtTime(alert.updatedAt) : null;
+  const riskClass = alert.level === "高" ? "high-risk" : "";
 
   return `
-    <article class="list-item alert-list-item">
+    <article class="list-item alert-list-item ${riskClass}">
       <div class="alert-list-header">
         <strong>${alert.title}</strong>
         <span class="tag ${alert.level === "高" ? "high" : alert.level === "中" ? "medium" : "low"}">${alert.level}风险</span>
@@ -730,7 +733,18 @@ async function loadDashboard() {
     speciesEventsBound = true;
   }
   applyFilters();
-  $("#alerts").innerHTML = alerts.alerts.map(renderAlert).join("");
+  const levelOrder = { "高": 0, "中": 1, "低": 2 };
+  const sortedAlerts = alerts.alerts.slice().sort((a, b) => {
+    const levelDiff = (levelOrder[a.level] ?? 3) - (levelOrder[b.level] ?? 3);
+    if (levelDiff !== 0) return levelDiff;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+  const alertsHtml = sortedAlerts.map(renderAlert).join("");
+  $("#alerts").innerHTML = alertsHtml;
+  const alertsMobile = $("#alertsMobile");
+  if (alertsMobile) {
+    alertsMobile.innerHTML = alertsHtml;
+  }
   $("#healthSummary").innerHTML = renderHealthSummary(health.summary);
   $("#stations").innerHTML = overview.stations.map(renderStation).join("");
   $("#observations").innerHTML = observations.observations.map(renderObservation).join("");

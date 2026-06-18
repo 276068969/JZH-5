@@ -2684,3 +2684,765 @@ textarea:focus {
 .submit-disposal-btn .spinner {
   margin-right: 6px;
 }
+
+.main-content-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+  margin-top: 20px;
+}
+
+.main-content-grid .route-panel {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+
+.main-content-grid .alerts-panel-desktop {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.main-content-grid .observation-panel {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.main-content-grid .stations-panel {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.alerts-panel-mobile {
+  display: none;
+  margin-top: 22px;
+  background: linear-gradient(135deg, #fff5f5 0%, #fdfbfb 100%);
+  border: 1px solid #f2caca;
+}
+
+.alerts-panel-mobile .panel-head h2 {
+  color: var(--danger);
+}
+
+.metric-card {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(15, 123, 108, 0.12);
+}
+
+.metric-card strong {
+  font-size: clamp(28px, 6vw, 38px);
+  line-height: 1.1;
+}
+
+.metric-card span {
+  font-size: 14px;
+}
+
+.metric-card em {
+  font-size: 13px;
+  padding-top: 4px;
+}
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+@media (max-width: 560px) {
+  .metric-info {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .metric-info > span {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 800;
+  }
+
+  .metric-info > strong {
+    font-size: 32px;
+    line-height: 1.1;
+    margin-top: 4px;
+  }
+
+  .metric-info > em {
+    font-size: 12px;
+    margin-top: 4px;
+    padding-top: 0;
+  }
+
+  .metric-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .metric-card::before {
+    content: "";
+    width: 4px;
+    height: 48px;
+    background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+}
+
+.filter-chips .chip {
+  min-height: 44px;
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.map-visual {
+  height: 300px;
+  border-radius: 8px;
+}
+
+.route-list .list-item {
+  min-height: 88px;
+  padding: 18px 16px;
+}
+
+.route-list .list-item strong {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.route-list .list-item p {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.alert-list-item {
+  min-height: 96px;
+  padding: 18px 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.alert-list-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(186, 59, 59, 0.1);
+}
+
+.alert-list-item.high-risk {
+  border-left: 4px solid var(--danger);
+  background: linear-gradient(135deg, #fff5f5 0%, #fdfbfb 100%);
+}
+
+.alert-list-header {
+  margin-bottom: 12px;
+}
+
+.alert-list-header strong {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.alert-list-item > p {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.alert-disposal-summary {
+  margin-top: 14px;
+  padding: 14px 16px;
+}
+
+.summary-text {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.observation-form {
+  gap: 14px;
+}
+
+.observation-form input,
+.observation-form select {
+  min-height: 52px;
+  padding: 14px 16px;
+  font-size: 16px;
+}
+
+.observation-form button {
+  min-height: 56px;
+  font-size: 17px;
+  padding: 16px 20px;
+}
+
+.submit-observation-btn {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(15, 123, 108, 0.25);
+  transition: all 0.2s ease;
+}
+
+.submit-observation-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 123, 108, 0.35);
+}
+
+.submit-observation-btn:active {
+  transform: translateY(0);
+}
+
+.station-card {
+  min-height: 120px;
+  padding: 16px;
+}
+
+.station-card-header strong {
+  font-size: 15px;
+}
+
+.station-card-metrics {
+  gap: 12px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.metric-item {
+  padding: 8px;
+  background: #f6faf8;
+  border-radius: 6px;
+}
+
+.metric-label {
+  font-size: 11px;
+}
+
+.metric-value {
+  font-size: 18px;
+}
+
+.list-item {
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.list-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 16px rgba(15, 123, 108, 0.1);
+}
+
+button,
+.chip,
+.list-item,
+.summary-actions button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tag {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.panel-head h2 {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.panel {
+  padding: 20px;
+}
+
+@media (max-width: 900px) {
+  .main-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .main-content-grid .route-panel,
+  .main-content-grid .alerts-panel-desktop,
+  .main-content-grid .observation-panel,
+  .main-content-grid .stations-panel {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .alerts-panel-desktop {
+    display: none;
+  }
+
+  .alerts-panel-mobile {
+    display: block;
+  }
+
+  .filter-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .reset-btn {
+    grid-column: span 2;
+    min-height: 48px;
+  }
+
+  .map-visual {
+    height: 240px;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .metric-card {
+    padding: 16px;
+    min-height: 100px;
+  }
+
+  .metric-card strong {
+    font-size: 28px;
+    margin-top: 8px;
+  }
+
+  .station-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .main-content-grid {
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .panel {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .panel-head {
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+  }
+
+  .panel-head h2 {
+    font-size: 17px;
+  }
+
+  .alerts-panel-mobile {
+    margin-top: 16px;
+    padding: 16px;
+  }
+
+  .alerts-panel-mobile .panel-head {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+  }
+
+  .alerts-panel-mobile .panel-head h2 {
+    font-size: 18px;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 16px 0;
+  }
+
+  .filter-panel {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .filter-group label {
+    font-size: 13px;
+  }
+
+  .filter-chips {
+    gap: 8px;
+  }
+
+  .filter-chips .chip {
+    min-height: 48px;
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+
+  .reset-btn {
+    grid-column: span 1;
+    min-height: 52px;
+    font-size: 15px;
+    padding: 14px 16px;
+  }
+
+  .map-visual {
+    height: 200px;
+    border-radius: 10px;
+  }
+
+  .route-list {
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .route-list .list-item {
+    min-height: 96px;
+    padding: 16px 14px;
+    border-radius: 10px;
+  }
+
+  .route-list .list-item strong {
+    font-size: 17px;
+    margin-bottom: 8px;
+  }
+
+  .route-list .list-item p {
+    font-size: 14px;
+  }
+
+  .progress {
+    height: 10px;
+    margin-top: 12px;
+  }
+
+  .alert-list-item {
+    min-height: 104px;
+    padding: 16px 14px;
+    border-radius: 10px;
+  }
+
+  .alert-list-item.high-risk {
+    border-left-width: 5px;
+  }
+
+  .alert-list-header {
+    margin-bottom: 10px;
+  }
+
+  .alert-list-header strong {
+    font-size: 16px;
+  }
+
+  .tag {
+    padding: 6px 12px;
+    font-size: 13px;
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .alert-disposal-summary {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+  }
+
+  .summary-text {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .observation-form {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .observation-form input,
+  .observation-form select {
+    min-height: 56px;
+    padding: 14px 16px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+
+  .observation-form input:nth-child(3),
+  .observation-form select,
+  .observation-form .form-error-box,
+  .observation-form button {
+    grid-column: span 1;
+  }
+
+  .observation-form button {
+    min-height: 60px;
+    font-size: 18px;
+    padding: 16px 20px;
+    border-radius: 10px;
+  }
+
+  .submit-observation-btn {
+    font-size: 17px;
+    min-height: 60px;
+  }
+
+  .species-info-box {
+    grid-column: span 1;
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .confirmation-summary {
+    border-radius: 12px;
+  }
+
+  .summary-header {
+    padding: 18px 16px;
+  }
+
+  .summary-header h3 {
+    font-size: 17px;
+  }
+
+  .summary-content {
+    padding: 16px;
+    gap: 10px;
+  }
+
+  .summary-row {
+    padding: 12px 14px;
+    border-radius: 10px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .summary-label {
+    font-size: 13px;
+  }
+
+  .summary-value {
+    font-size: 16px;
+  }
+
+  .summary-actions {
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px 18px;
+  }
+
+  .primary-btn,
+  .secondary-btn {
+    padding: 16px 20px;
+    font-size: 16px;
+    min-height: 56px;
+    border-radius: 10px;
+  }
+
+  .station-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .station-card {
+    min-height: 128px;
+    padding: 16px 14px;
+    border-radius: 10px;
+  }
+
+  .station-card-header strong {
+    font-size: 16px;
+  }
+
+  .station-card-metrics {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+    margin-bottom: 14px;
+  }
+
+  .metric-item {
+    padding: 10px 8px;
+    border-radius: 8px;
+  }
+
+  .metric-value {
+    font-size: 20px;
+  }
+
+  .metric-label {
+    font-size: 12px;
+  }
+
+  .station-card-footer {
+    font-size: 13px;
+    padding-top: 10px;
+  }
+
+  .stack {
+    gap: 10px;
+  }
+
+  .list-item {
+    border-radius: 10px;
+  }
+
+  .health-summary-panel {
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .health-visual-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .health-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .health-stat-card {
+    padding: 16px;
+    border-radius: 10px;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .health-stat-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+  }
+
+  .health-stat-value {
+    font-size: 32px;
+  }
+
+  .env-metrics {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .abnormal-cards {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .abnormal-card {
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .low-battery-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .low-battery-card {
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .status-distribution-body {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .donut-chart-wrap {
+    width: 160px;
+    height: 160px;
+  }
+
+  .battery-stats-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .battery-alert-mini {
+    align-items: flex-start;
+  }
+
+  .battery-bar-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .battery-bar-count {
+    text-align: left;
+  }
+
+  .hero {
+    padding: 28px 20px;
+    min-height: auto;
+    border-radius: 12px;
+  }
+
+  .hero h1 {
+    font-size: clamp(28px, 8vw, 42px);
+  }
+
+  .hero p {
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  .login-panel {
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+  .login-panel input,
+  .login-panel button {
+    min-height: 52px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+
+  .shell {
+    padding: 14px;
+  }
+
+  .topbar {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .topbar nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .topbar nav a {
+    padding: 10px 14px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .topbar button.ghost {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 560px) and (hover: none) and (pointer: coarse) {
+  .metric-card:hover,
+  .list-item:hover,
+  .alert-list-item:hover,
+  .station-card:hover,
+  .route-list .list-item:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .metric-card:active,
+  .list-item:active,
+  .alert-list-item:active,
+  .station-card:active,
+  .route-list .list-item:active {
+    background: #f0f7f4;
+    border-color: var(--primary);
+  }
+
+  button:active,
+  .chip:active {
+    transform: scale(0.98);
+  }
+}
