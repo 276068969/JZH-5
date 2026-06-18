@@ -795,14 +795,9 @@ $("#alerts").addEventListener("click", async (event) => {
 
   if (submitId) {
     event.preventDefault();
-    if (state.savingAlerts.has(submitId)) return;
-
     const button = event.target.closest(".submit-disposal-btn");
-    const row = document.querySelector(`.alert-row[data-alert-id="${submitId}"]`);
     const select = document.querySelector(`.status-select[data-alert="${submitId}"]`);
     const textarea = document.querySelector(`.remark-input[data-remark="${submitId}"]`);
-    const statusBar = row?.querySelector(".alert-status-bar");
-    const status = select?.value;
     const remark = textarea?.value.trim() || "";
 
     if (!remark && select?.value === select?.dataset.original) {
@@ -810,103 +805,140 @@ $("#alerts").addEventListener("click", async (event) => {
       return;
     }
 
-    state.savingAlerts.add(submitId);
-    state.alertSaveStatus[submitId] = "saving";
-
-    if (row) row.classList.add("saving");
-    if (select) select.disabled = true;
-    if (textarea) textarea.disabled = true;
-    if (button) {
-      button.disabled = true;
-      button.innerHTML = '<span class="spinner"></span>保存中...';
-    }
-
-    let feedbackEl = null;
-    if (statusBar) {
-      const existingFeedback = statusBar.querySelector(".status-feedback");
-      if (existingFeedback) existingFeedback.remove();
-      
-      feedbackEl = document.createElement("span");
-      feedbackEl.className = "status-feedback saving";
-      feedbackEl.innerHTML = '<span class="spinner"></span>保存中...';
-      statusBar.appendChild(feedbackEl);
-    }
-
-    try {
-      const result = await api(`/api/admin/alerts/${encodeURIComponent(submitId)}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status, remark })
-      });
-
-      const alertIndex = state.allAlerts.findIndex(a => a.id === submitId);
-      if (alertIndex !== -1) {
-        state.allAlerts[alertIndex] = result.alert;
-      }
-
-      updateAlertInView(result.alert);
-
-      state.alertSaveStatus[submitId] = "success";
-
-      if (feedbackEl) {
-        feedbackEl.className = "status-feedback success";
-        feedbackEl.innerHTML = "✓ 保存成功";
-      }
-
-      setTimeout(() => {
-        delete state.alertSaveStatus[submitId];
-        if (feedbackEl && feedbackEl.parentNode) {
-          feedbackEl.remove();
-        }
-        if (row) row.classList.remove("saving");
-        if (button) {
-          button.disabled = false;
-          button.innerHTML = "提交处置记录";
-        }
-        renderAlertRowWithData(result.alert, submitId);
-        refreshAlertListAfterChange(submitId, status);
-      }, 2000);
-
-      if (select) select.dataset.original = status;
-      if (textarea) textarea.value = "";
-    } catch (error) {
-      state.alertSaveStatus[submitId] = "error";
-
-      if (feedbackEl) {
-        feedbackEl.className = "status-feedback error";
-        feedbackEl.innerHTML = "✗ 保存失败，请重试";
-      }
-
-      setTimeout(() => {
-        delete state.alertSaveStatus[submitId];
-        if (feedbackEl && feedbackEl.parentNode) {
-          feedbackEl.remove();
-        }
-        if (row) row.classList.remove("saving");
-        if (select) select.disabled = false;
-        if (textarea) textarea.disabled = false;
-        if (button) {
-          button.disabled = false;
-          button.innerHTML = "提交处置记录";
-        }
-      }, 3000);
-    } finally {
-      state.savingAlerts.delete(submitId);
-    }
-
+    await saveAlertWithFeedback(submitId, remark, button);
     return;
   }
 });
+
+async function saveAlertWithFeedback(alertId, remark, button) {
+  if (state.savingAlerts.has(alertId)) return false;
+
+  const row = document.querySelector(`.alert-row[data-alert-id="${alertId}"]`);
+  const select = document.querySelector(`.status-select[data-alert="${alertId}"]`);
+  const textarea = document.querySelector(`.remark-input[data-remark="${alertId}"]`);
+  const statusBar = row?.querySelector(".alert-status-bar");
+  const status = select?.value;
+
+  if (!button) {
+    button = row?.querySelector(".submit-disposal-btn");
+  }
+
+  state.savingAlerts.add(alertId);
+  state.alertSaveStatus[alertId] = "saving";
+
+  if (row) row.classList.add("saving");
+  if (select) select.disabled = true;
+  if (textarea) textarea.disabled = true;
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner"></span>保存中...';
+  }
+
+  let feedbackEl = null;
+  if (statusBar) {
+    const existingFeedback = statusBar.querySelector(".status-feedback");
+    if (existingFeedback) existingFeedback.remove();
+    
+    feedbackEl = document.createElement("span");
+    feedbackEl.className = "status-feedback saving";
+    feedbackEl.innerHTML = '<span class="spinner"></span>保存中...';
+    statusBar.appendChild(feedbackEl);
+  }
+
+  try {
+    const result = await api(`/api/admin/alerts/${encodeURIComponent(alertId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, remark })
+    });
+
+    const alertIndex = state.allAlerts.findIndex(a => a.id === alertId);
+    if (alertIndex !== -1) {
+      state.allAlerts[alertIndex] = result.alert;
+    }
+
+    updateAlertInView(result.alert);
+
+    state.alertSaveStatus[alertId] = "success";
+
+    if (feedbackEl) {
+      feedbackEl.className = "status-feedback success";
+      feedbackEl.innerHTML = "✓ 保存成功";
+    }
+
+    setTimeout(() => {
+      delete state.alertSaveStatus[alertId];
+      if (feedbackEl && feedbackEl.parentNode) {
+        feedbackEl.remove();
+      }
+      if (row) row.classList.remove("saving");
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = "提交处置记录";
+      }
+      renderAlertRowWithData(result.alert, alertId);
+      refreshAlertListAfterChange(alertId, status);
+    }, 2000);
+
+    if (select) select.dataset.original = status;
+    if (textarea) textarea.value = "";
+
+    return true;
+  } catch (error) {
+    state.alertSaveStatus[alertId] = "error";
+
+    if (feedbackEl) {
+      feedbackEl.className = "status-feedback error";
+      feedbackEl.innerHTML = "✗ 保存失败，请重试";
+    }
+
+    setTimeout(() => {
+      delete state.alertSaveStatus[alertId];
+      if (feedbackEl && feedbackEl.parentNode) {
+        feedbackEl.remove();
+      }
+      if (row) row.classList.remove("saving");
+      if (select) select.disabled = false;
+      if (textarea) textarea.disabled = false;
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = "提交处置记录";
+      }
+    }, 3000);
+
+    return false;
+  } finally {
+    state.savingAlerts.delete(alertId);
+  }
+}
 
 $("#alerts").addEventListener("change", async (event) => {
   const id = event.target.dataset.alert;
   if (!id || !event.target.classList.contains("status-select")) return;
 
+  const select = event.target;
+  const newStatus = select.value;
+  const originalStatus = select.dataset.original;
   const textarea = document.querySelector(`.remark-input[data-remark="${id}"]`);
-  if (textarea && state.expandedAlerts.has(id)) {
-    textarea.focus();
-  } else {
+  const remark = textarea?.value.trim() || "";
+
+  if (newStatus === originalStatus) {
+    if (textarea && state.expandedAlerts.has(id)) {
+      textarea.focus();
+    }
+    return;
+  }
+
+  const wasExpanded = state.expandedAlerts.has(id);
+  if (!wasExpanded) {
     state.expandedAlerts.add(id);
-    await loadAdmin();
+  }
+
+  const saveSuccess = await saveAlertWithFeedback(id, remark);
+  
+  if (saveSuccess && !wasExpanded) {
+    setTimeout(() => {
+      renderAlertRowWithData(findAlertInView(id), id);
+    }, 2100);
   }
 });
 
