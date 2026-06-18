@@ -549,6 +549,15 @@ async function handleApi(req, res) {
       return sendJson(res, 200, { summary });
     }
 
+    if (req.method === "GET" && url.pathname === "/api/admin/broadcasts") {
+      const user = requireUser(req, res, ["admin"]);
+      if (!user) return;
+      const broadcasts = data.broadcasts
+        .slice()
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return sendJson(res, 200, { broadcasts });
+    }
+
     if (req.method === "POST" && url.pathname === "/api/admin/broadcasts") {
       const user = requireUser(req, res, ["admin"]);
       if (!user) return;

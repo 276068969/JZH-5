@@ -37,7 +37,16 @@
         <input name="title" placeholder="通知标题" required>
         <textarea name="content" rows="5" placeholder="通知内容" required></textarea>
         <button type="submit">发布通知</button>
+        <div class="form-feedback" id="broadcastFeedback" role="status" aria-live="polite" hidden></div>
       </form>
+
+      <div class="panel broadcast-list-panel" id="broadcastListPanel" hidden>
+        <div class="panel-head">
+          <h2>已发布通知</h2>
+          <span id="broadcastCount">0 条</span>
+        </div>
+        <div id="broadcastList" class="broadcast-list"></div>
+      </div>
     </section>
 
     <section class="admin-main">

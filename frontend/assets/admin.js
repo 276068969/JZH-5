@@ -12,6 +12,9 @@ const state = {
   allAlerts: [],
   allSpecies: [],
   allRoutes: [],
+  broadcasts: [],
+  broadcastsLoaded: false,
+  lastPublishedId: null,
   editingSpeciesId: null,
   savingAlerts: new Set(),
   alertSaveStatus: {}
@@ -68,6 +71,65 @@ function protectionLevelClass(level) {
 
 function protectionLevelLabel(level) {
   return level || "无";
+}
+
+function renderBroadcast(broadcast) {
+  const isNew = broadcast.id === state.lastPublishedId;
+  return `
+    <article class="broadcast-item ${isNew ? "new" : ""}" data-broadcast-id="${broadcast.id}">
+      <div class="broadcast-header">
+        <strong class="broadcast-title">${broadcast.title}</strong>
+        ${isNew ? '<span class="broadcast-badge">刚发布</span>' : ''}
+      </div>
+      <p class="broadcast-content">${broadcast.content}</p>
+      <p class="broadcast-meta">
+        <span class="broadcast-publisher">发布人：${broadcast.publisher}</span>
+        <span class="broadcast-time">${fmtTime(broadcast.createdAt)}</span>
+      </p>
+    </article>
+  `;
+}
+
+function renderBroadcastList() {
+  const container = $("#broadcastList");
+  const panel = $("#broadcastListPanel");
+  const countEl = $("#broadcastCount");
+  if (!container || !panel) return;
+
+  if (state.broadcasts.length === 0) {
+    panel.hidden = false;
+    countEl.textContent = "0 条";
+    container.innerHTML = '<p class="empty-hint">暂无已发布通知，提交后将在此回显。</p>';
+    return;
+  }
+
+  panel.hidden = false;
+  countEl.textContent = `${state.broadcasts.length} 条`;
+  container.innerHTML = state.broadcasts.map(renderBroadcast).join("");
+}
+
+async function loadBroadcasts() {
+  if (!state.token || state.user?.role !== "admin") return;
+  try {
+    const result = await api("/api/admin/broadcasts");
+    state.broadcasts = result.broadcasts || [];
+    renderBroadcastList();
+  } catch (error) {
+    console.error("Failed to load broadcasts:", error);
+  }
+}
+
+function showBroadcastFeedback(message, type = "success") {
+  const feedback = $("#broadcastFeedback");
+  if (!feedback) return;
+  feedback.textContent = message;
+  feedback.className = `form-feedback ${type}`;
+  feedback.hidden = false;
+  clearTimeout(showBroadcastFeedback._timer);
+  showBroadcastFeedback._timer = setTimeout(() => {
+    feedback.hidden = true;
+    feedback.textContent = "";
+  }, 3500);
 }
 
 function renderSpecies(species) {
@@ -568,6 +630,11 @@ async function loadAdmin() {
   $("#stations").innerHTML = stations.stations.map(renderStation).join("");
 
   await loadSpeciesAndRoutes();
+
+  if (!state.broadcastsLoaded) {
+    await loadBroadcasts();
+    state.broadcastsLoaded = true;
+  }
 }
 
 $("#loginForm").addEventListener("submit", async (event) => {
@@ -992,12 +1059,16 @@ $("#broadcastForm").addEventListener("submit", async (event) => {
     return;
   }
   try {
-    await api("/api/admin/broadcasts", {
+    const result = await api("/api/admin/broadcasts", {
       method: "POST",
       body: JSON.stringify(Object.fromEntries(form))
     });
     event.currentTarget.reset();
-    alert("监管通知已发布。");
+    state.lastPublishedId = result.broadcast?.id || null;
+    await loadBroadcasts();
+    showBroadcastFeedback("监管通知已发布，已同步至通知列表与监测台。", "success");
+    const newItem = document.querySelector(".broadcast-item.new");
+    if (newItem) newItem.scrollIntoView({ behavior: "smooth", block: "center" });
   } catch (error) {
     let msg = error.message;
     if (error.errors && error.errors.length > 0) {
