@@ -13,6 +13,7 @@ const state = {
   expandedAlerts: new Set(),
   expandedStations: new Set(),
   stationDetails: {},
+  stationHealthAnalysis: {},
   alertFilters: {
     status: "all",
     level: "all",
@@ -96,6 +97,70 @@ function batteryLevel(battery) {
   if (battery < 40) return { level: "low", text: "低电量" };
   if (battery < 70) return { level: "medium", text: "中等" };
   return { level: "good", text: "充足" };
+}
+
+const DIMENSION_LABELS = {
+  battery: "供电状态",
+  status: "运行状态",
+  temperature: "环境温度",
+  humidity: "环境湿度"
+};
+
+const HEALTH_LEVEL_META = {
+  critical: { label: "严重", className: "health-critical", icon: "🔴" },
+  warning: { label: "警告", className: "health-warning", icon: "🟠" },
+  fair: { label: "一般", className: "health-fair", icon: "🔵" },
+  good: { label: "良好", className: "health-good", icon: "🟢" },
+  unknown: { label: "未知", className: "health-unknown", icon: "⚪" }
+};
+
+function healthLevelMeta(level) {
+  return HEALTH_LEVEL_META[level] || HEALTH_LEVEL_META.unknown;
+}
+
+function renderHealthScoreBar(score, level) {
+  const meta = healthLevelMeta(level);
+  const barColor = {
+    critical: "#dc2626",
+    warning: "#d97706",
+    fair: "#2563eb",
+    good: "#059669",
+    unknown: "#6b7280"
+  }[level] || "#6b7280";
+  return `
+    <div class="health-score-container">
+      <div class="health-score-bar">
+        <div class="health-score-fill" style="width: ${score}%; background: ${barColor};"></div>
+      </div>
+      <div class="health-score-meta">
+        <span class="health-score-value">${score}</span>
+        <span class="health-score-label ${meta.className}">${meta.icon} ${meta.label}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderDimensionStatus(dim, name) {
+  const dimStatusClass = {
+    critical: "dim-critical",
+    warning: "dim-warning",
+    fair: "dim-fair",
+    good: "dim-good",
+    unknown: "dim-unknown"
+  }[dim.status] || "dim-unknown";
+  return `
+    <div class="dimension-item ${dimStatusClass}">
+      <div class="dimension-header">
+        <span class="dimension-name">${DIMENSION_LABELS[name] || name}</span>
+        <span class="dimension-status">${dim.levelText}</span>
+      </div>
+      ${dim.issues && dim.issues.length > 0 ? `
+        <ul class="dimension-issues">
+          ${dim.issues.map((issue) => `<li>${issue}</li>`).join("")}
+        </ul>
+      ` : ""}
+    </div>
+  `;
 }
 
 function protectionLevelClass(level) {
@@ -492,10 +557,54 @@ function renderAlert(alert) {
   `;
 }
 
-function renderStationDetail(station) {
+function renderStationDetail(station, analysis) {
   const battery = batteryLevel(station.battery);
   return `
     <div class="station-detail-panel">
+      ${analysis ? `
+        <div class="detail-section health-overview-section">
+          <h4>设备健康评估 <span class="health-analyzed-at">分析于 ${fmtTime(analysis.analyzedAt)}</span></h4>
+          ${renderHealthScoreBar(analysis.overall.score, analysis.overall.level)}
+          <p class="health-description">${analysis.overall.description}</p>
+          <div class="maintenance-info">
+            <span class="maintenance-priority priority-${analysis.maintenance.priority}">
+              维护优先级：${analysis.maintenance.priorityLabel}
+            </span>
+            ${analysis.maintenance.needsAttention ? '<span class="maintenance-flag">需要关注</span>' : '<span class="maintenance-flag ok">状态正常</span>'}
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4>四维度健康详情</h4>
+          <div class="dimensions-grid">
+            ${Object.entries(analysis.dimensions).map(([name, dim]) => renderDimensionStatus(dim, name)).join("")}
+          </div>
+        </div>
+
+        ${analysis.issues && analysis.issues.length > 0 ? `
+          <div class="detail-section">
+            <h4>异常问题清单 (${analysis.issues.length})</h4>
+            <ul class="issue-list">
+              ${analysis.issues.map((issue) => `
+                <li class="issue-item">
+                  <span class="issue-dimension">[${DIMENSION_LABELS[issue.dimension] || issue.dimension}]</span>
+                  <span class="issue-text">${issue.text}</span>
+                </li>
+              `).join("")}
+            </ul>
+          </div>
+        ` : ""}
+
+        ${analysis.suggestions && analysis.suggestions.length > 0 ? `
+          <div class="detail-section">
+            <h4>维护建议</h4>
+            <ol class="suggestion-list">
+              ${analysis.suggestions.map((s) => `<li>${s}</li>`).join("")}
+            </ol>
+          </div>
+        ` : ""}
+      ` : ""}
+
       <div class="detail-highlight">
         <div class="highlight-card risk-${station.status}">
           <span class="highlight-label">运行状态</span>
@@ -556,7 +665,7 @@ function renderStationDetail(station) {
 
       ${station.abnormalReason ? `
         <div class="detail-section">
-          <h4>异常原因</h4>
+          <h4>已记录异常原因</h4>
           <div class="abnormal-reason">
             <span class="warning-icon">⚠️</span>
             <p>${station.abnormalReason}</p>
@@ -570,14 +679,17 @@ function renderStationDetail(station) {
 function renderStation(station) {
   const isExpanded = state.expandedStations.has(station.id);
   const detail = state.stationDetails[station.id];
+  const analysis = state.stationHealthAnalysis[station.id];
   const battery = batteryLevel(station.battery);
+  const healthMeta = analysis ? healthLevelMeta(analysis.overall.level) : null;
 
   return `
-    <article class="admin-row station-row" data-station-id="${station.id}">
+    <article class="admin-row station-row ${analysis && analysis.maintenance.needsAttention ? "station-needs-attention" : ""}" data-station-id="${station.id}">
       <div class="station-main">
         <div class="station-header">
           <strong>${station.name}</strong>
           <span class="tag ${station.status}">${stationStatusLabel(station.status)}</span>
+          ${healthMeta ? `<span class="tag health-tag ${healthMeta.className}">${healthMeta.icon} 健康${healthMeta.label}${analysis ? ` · ${analysis.overall.score}分` : ""}</span>` : ""}
         </div>
         <p class="station-meta">
           ${station.location || "位置未设置"} · 最后上报 ${station.lastReportedAt ? fmtTime(station.lastReportedAt) : "—"}
@@ -596,7 +708,12 @@ function renderStation(station) {
             <span class="summary-value battery-${battery.level}">${station.battery !== null ? `${station.battery}%` : "—"}</span>
           </div>
         </div>
-        ${station.abnormalReason ? `
+        ${analysis && analysis.issues && analysis.issues.length > 0 ? `
+          <div class="abnormal-banner health-abnormal">
+            <span class="warning-icon">⚠️</span>
+            <span>检测到 ${analysis.issues.length} 项异常：${analysis.issues[0].text.length > 50 ? analysis.issues[0].text.slice(0, 50) + "…" : analysis.issues[0].text}${analysis.issues.length > 1 ? ` 等${analysis.issues.length}项问题` : ""}</span>
+          </div>
+        ` : station.abnormalReason ? `
           <div class="abnormal-banner">
             <span class="warning-icon">⚠️</span>
             <span>${station.abnormalReason.length > 60 ? station.abnormalReason.slice(0, 60) + "…" : station.abnormalReason}</span>
@@ -607,10 +724,11 @@ function renderStation(station) {
         </button>
       </div>
       <div class="station-actions">
+        ${analysis ? `<span class="tag maintenance-tag priority-${analysis.maintenance.priority}">维护${analysis.maintenance.priorityLabel}</span>` : ""}
         <span class="tag battery-tag battery-${battery.level}">${station.battery !== null ? `${station.battery}%` : "—"}</span>
       </div>
       ${isExpanded && detail ? `
-        ${renderStationDetail(detail)}
+        ${renderStationDetail(detail, analysis)}
       ` : isExpanded ? `
         <div class="station-detail-panel">
           <p style="color: var(--muted); text-align: center; padding: 20px;">加载中...</p>
@@ -654,10 +772,16 @@ function populateAreaOptions() {
 
 async function loadAdmin() {
   if (!state.token) return;
-  const [alerts, stations] = await Promise.all([
+  const [alerts, stations, healthAnalysis] = await Promise.all([
     api(buildAlertQueryString()),
-    api("/api/admin/stations")
+    api("/api/admin/stations"),
+    api("/api/stations/health-analysis")
   ]);
+  if (healthAnalysis && healthAnalysis.analyses) {
+    for (const a of healthAnalysis.analyses) {
+      state.stationHealthAnalysis[a.stationId] = a;
+    }
+  }
   if (state.allAlerts.length === 0) {
     const allAlertsResult = await api("/api/alerts");
     state.allAlerts = allAlertsResult.alerts;
@@ -1065,15 +1189,25 @@ $("#stations").addEventListener("click", async (event) => {
   }
 
   state.expandedStations.add(toggleId);
-  if (!state.stationDetails[toggleId]) {
-    try {
-      const result = await api(`/api/admin/stations/${encodeURIComponent(toggleId)}`);
-      state.stationDetails[toggleId] = result.station;
-    } catch (error) {
-      alert(error.message);
-      state.expandedStations.delete(toggleId);
-      return;
+  const fetchDetail = !state.stationDetails[toggleId]
+    ? api(`/api/admin/stations/${encodeURIComponent(toggleId)}`)
+    : Promise.resolve({ station: state.stationDetails[toggleId] });
+  const fetchHealth = !state.stationHealthAnalysis[toggleId]
+    ? api(`/api/admin/stations/${encodeURIComponent(toggleId)}/health`)
+    : Promise.resolve({ analysis: state.stationHealthAnalysis[toggleId] });
+
+  try {
+    const [detailResult, healthResult] = await Promise.all([fetchDetail, fetchHealth]);
+    if (detailResult && detailResult.station) {
+      state.stationDetails[toggleId] = detailResult.station;
     }
+    if (healthResult && healthResult.analysis) {
+      state.stationHealthAnalysis[toggleId] = healthResult.analysis;
+    }
+  } catch (error) {
+    alert(error.message);
+    state.expandedStations.delete(toggleId);
+    return;
   }
   await loadAdmin();
 });

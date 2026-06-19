@@ -286,6 +286,326 @@ function analyzeRouteProgress(route) {
   };
 }
 
+function analyzeBattery(battery) {
+  if (battery === null || battery === undefined) {
+    return {
+      level: "unknown",
+      levelText: "未知",
+      status: "fair",
+      issues: ["电量数据缺失，无法准确评估供电状态"],
+      suggestions: ["检查设备通信模块是否正常，确认电量传感器是否工作"]
+    };
+  }
+  if (battery < 20) {
+    return {
+      level: "critical",
+      levelText: "严重不足",
+      status: "critical",
+      issues: [`电池电量仅 ${battery}%，已处于严重低电量状态，设备可能随时断电`],
+      suggestions: ["立即安排现场更换电池或充电", "排查太阳能板是否正常工作", "检查是否有设备异常耗电"]
+    };
+  }
+  if (battery < 40) {
+    return {
+      level: "low",
+      levelText: "偏低",
+      status: "warning",
+      issues: [`电池电量 ${battery}%，低于安全阈值 40%`],
+      suggestions: ["计划近期安排充电或更换电池", "监控电量下降速度", "如遇连续阴雨天气需提前准备备用电源"]
+    };
+  }
+  if (battery < 70) {
+    return {
+      level: "medium",
+      levelText: "中等",
+      status: "fair",
+      issues: [`电池电量 ${battery}%，处于中等水平`],
+      suggestions: ["继续正常监控", "安排下次常规巡检时关注电量状态"]
+    };
+  }
+  return {
+    level: "good",
+    levelText: "充足",
+    status: "good",
+    issues: [],
+    suggestions: ["电量状态良好，保持常规监控即可"]
+  };
+}
+
+function analyzeStatus(status, lastReportedAt) {
+  const now = Date.now();
+  let hoursSinceReport = null;
+  if (lastReportedAt) {
+    hoursSinceReport = Math.round((now - new Date(lastReportedAt).getTime()) / (1000 * 60 * 60));
+  }
+
+  if (status === "offline") {
+    const issues = ["设备已离线，无法正常采集和上报数据"];
+    if (hoursSinceReport !== null) {
+      issues.push(`距最后一次上报已约 ${hoursSinceReport} 小时`);
+    }
+    return {
+      level: "critical",
+      levelText: "离线",
+      status: "critical",
+      issues,
+      suggestions: [
+        "优先安排巡护员现场排查",
+        "检查设备供电是否正常",
+        "检查通信模块（4G/北斗）是否工作正常",
+        "重启设备观察是否恢复"
+      ]
+    };
+  }
+  if (status === "warning") {
+    return {
+      level: "warning",
+      levelText: "告警",
+      status: "warning",
+      issues: ["设备处于告警状态，运行存在异常"],
+      suggestions: [
+        "查看异常原因字段了解具体问题",
+        "结合环境指标综合判断问题类型",
+        "如告警持续超过 24 小时建议现场排查"
+      ]
+    };
+  }
+  if (status === "online") {
+    if (hoursSinceReport !== null && hoursSinceReport > 2) {
+      return {
+        level: "fair",
+        levelText: "在线但上报延迟",
+        status: "fair",
+        issues: [`设备显示在线但距最后上报已 ${hoursSinceReport} 小时，可能存在上报延迟`],
+        suggestions: ["关注后续上报是否恢复正常频率", "如持续延迟建议检查网络信号"]
+      };
+    }
+    return {
+      level: "good",
+      levelText: "在线正常",
+      status: "good",
+      issues: [],
+      suggestions: ["设备运行状态正常，保持监控即可"]
+    };
+  }
+  return {
+    level: "unknown",
+    levelText: "未知",
+    status: "fair",
+    issues: ["设备状态数据异常"],
+    suggestions: ["检查数据上报是否正常"]
+  };
+}
+
+function analyzeTemperature(temperature) {
+  if (temperature === null || temperature === undefined) {
+    return {
+      level: "unknown",
+      levelText: "未知",
+      status: "fair",
+      issues: ["温度数据缺失"],
+      suggestions: ["检查温度传感器是否连接正常", "确认传感器校准状态"]
+    };
+  }
+  if (temperature < -10 || temperature > 50) {
+    return {
+      level: "critical",
+      levelText: "极端异常",
+      status: "critical",
+      issues: [`环境温度 ${temperature}°C，已超出设备正常工作范围（-10°C ~ 50°C）`],
+      suggestions: [
+        "温度异常可能导致设备故障或精度下降",
+        "排查是否传感器故障或真实极端环境",
+        "如为真实环境需评估设备防护措施是否足够"
+      ]
+    };
+  }
+  if ((temperature >= -10 && temperature < 0) || (temperature > 40 && temperature <= 50)) {
+    return {
+      level: "warning",
+      levelText: "接近阈值",
+      status: "warning",
+      issues: [`环境温度 ${temperature}°C，接近设备工作温度临界值`],
+      suggestions: [
+        "密切关注温度变化趋势",
+        "高温时段加强监控，防范设备过热",
+        "低温时注意电池性能下降"
+      ]
+    };
+  }
+  if ((temperature >= 0 && temperature < 10) || (temperature > 35 && temperature <= 40)) {
+    return {
+      level: "fair",
+      levelText: "轻微偏离",
+      status: "fair",
+      issues: [`环境温度 ${temperature}°C，略偏离最佳工作范围`],
+      suggestions: ["温度对设备影响较小，保持常规监控即可"]
+    };
+  }
+  return {
+    level: "good",
+    levelText: "正常",
+    status: "good",
+    issues: [],
+    suggestions: ["温度在最佳工作范围内（10°C ~ 35°C）"]
+  };
+}
+
+function analyzeHumidity(humidity) {
+  if (humidity === null || humidity === undefined) {
+    return {
+      level: "unknown",
+      levelText: "未知",
+      status: "fair",
+      issues: ["湿度数据缺失"],
+      suggestions: ["检查湿度传感器是否连接正常", "确认传感器校准状态"]
+    };
+  }
+  if (humidity < 10 || humidity > 95) {
+    return {
+      level: "critical",
+      levelText: "极端异常",
+      status: "critical",
+      issues: [`环境湿度 ${humidity}%，已超出设备正常工作范围（10% ~ 95%）`],
+      suggestions: [
+        humidity > 95
+          ? "高湿环境可能导致电路短路或腐蚀，建议检查设备密封防水措施"
+          : "极端干燥环境可能增加静电风险，注意设备接地防护",
+        "排查是否传感器故障或真实极端环境"
+      ]
+    };
+  }
+  if ((humidity >= 10 && humidity < 20) || (humidity > 85 && humidity <= 95)) {
+    return {
+      level: "warning",
+      levelText: "接近阈值",
+      status: "warning",
+      issues: [`环境湿度 ${humidity}%，接近设备工作湿度临界值`],
+      suggestions: [
+        humidity > 85
+          ? "湿度偏高，关注设备是否有结露现象"
+          : "湿度偏低，关注设备静电防护情况",
+        "密切关注湿度变化趋势"
+      ]
+    };
+  }
+  if ((humidity >= 20 && humidity < 30) || (humidity > 75 && humidity <= 85)) {
+    return {
+      level: "fair",
+      levelText: "轻微偏离",
+      status: "fair",
+      issues: [`环境湿度 ${humidity}%，略偏离最佳湿度范围`],
+      suggestions: ["湿度对设备影响较小，保持常规监控即可"]
+    };
+  }
+  return {
+    level: "good",
+    levelText: "正常",
+    status: "good",
+    issues: [],
+    suggestions: ["湿度在最佳工作范围内（30% ~ 75%）"]
+  };
+}
+
+function computeOverallHealth(dimensions) {
+  const statusOrder = { critical: 0, warning: 1, fair: 2, good: 3, unknown: 4 };
+  const labelMap = {
+    critical: { level: "critical", label: "严重", color: "#dc2626", description: "设备存在严重问题，需立即处置" },
+    warning: { level: "warning", label: "警告", color: "#d97706", description: "设备存在异常，需加强关注并计划维护" },
+    fair: { level: "fair", label: "一般", color: "#2563eb", description: "设备运行基本正常，部分指标需关注" },
+    good: { level: "good", label: "良好", color: "#059669", description: "设备各项指标正常，运行状态良好" },
+    unknown: { level: "unknown", label: "未知", color: "#6b7280", description: "数据不完整，无法准确评估" }
+  };
+
+  let worstStatus = "good";
+  for (const dim of Object.values(dimensions)) {
+    if (statusOrder[dim.status] < statusOrder[worstStatus]) {
+      worstStatus = dim.status;
+    }
+  }
+
+  const scoreMap = { critical: 20, warning: 50, fair: 75, good: 95, unknown: 50 };
+  const allStatuses = Object.values(dimensions).map((d) => d.status);
+  let avgScore = allStatuses.length > 0
+    ? Math.round(allStatuses.reduce((sum, s) => sum + scoreMap[s], 0) / allStatuses.length)
+    : 0;
+
+  if (worstStatus === "good" && avgScore < 95) avgScore = 85;
+  if (worstStatus === "fair" && avgScore > 75) avgScore = 75;
+  if (worstStatus === "warning" && avgScore > 50) avgScore = 50;
+  if (worstStatus === "critical" && avgScore > 20) avgScore = 20;
+
+  return {
+    ...labelMap[worstStatus],
+    score: avgScore,
+    worstDimension: worstStatus
+  };
+}
+
+function analyzeStationHealth(station) {
+  const battery = analyzeBattery(station.battery);
+  const status = analyzeStatus(station.status, station.lastReportedAt);
+  const temperature = analyzeTemperature(station.temperature);
+  const humidity = analyzeHumidity(station.humidity);
+
+  const dimensions = { battery, status, temperature, humidity };
+  const overall = computeOverallHealth(dimensions);
+
+  const allIssues = [];
+  const allSuggestions = [];
+  for (const [name, dim] of Object.entries(dimensions)) {
+    if (dim.issues && dim.issues.length > 0) {
+      for (const issue of dim.issues) {
+        allIssues.push({ dimension: name, text: issue });
+      }
+    }
+    if (dim.suggestions && dim.suggestions.length > 0) {
+      for (const suggestion of dim.suggestions) {
+        if (!allSuggestions.includes(suggestion)) {
+          allSuggestions.push(suggestion);
+        }
+      }
+    }
+  }
+
+  let maintenancePriority = "low";
+  if (overall.level === "critical") {
+    maintenancePriority = "urgent";
+  } else if (overall.level === "warning") {
+    maintenancePriority = "high";
+  } else if (overall.level === "fair") {
+    maintenancePriority = "medium";
+  }
+
+  const priorityLabels = {
+    urgent: "紧急",
+    high: "高",
+    medium: "中",
+    low: "低"
+  };
+
+  return {
+    stationId: station.id,
+    stationName: station.name,
+    analyzedAt: new Date().toISOString(),
+    overall: {
+      level: overall.level,
+      levelLabel: overall.label,
+      levelColor: overall.color,
+      score: overall.score,
+      description: overall.description
+    },
+    dimensions,
+    issues: allIssues,
+    suggestions: allSuggestions.slice(0, 8),
+    maintenance: {
+      priority: maintenancePriority,
+      priorityLabel: priorityLabels[maintenancePriority],
+      needsAttention: overall.level !== "good"
+    }
+  };
+}
+
 function getStationHealthSummary(stations) {
   const total = stations.length;
   const online = stations.filter((s) => s.status === "online").length;
@@ -813,6 +1133,16 @@ async function handleApi(req, res) {
       return sendJson(res, 200, { stations: data.stations });
     }
 
+    if (req.method === "GET" && url.pathname.startsWith("/api/admin/stations/") && url.pathname.endsWith("/health")) {
+      const user = requireUser(req, res, ["admin", "ranger"]);
+      if (!user) return;
+      const id = decodeURIComponent(url.pathname.slice("/api/admin/stations/".length, -"/health".length));
+      const station = data.stations.find((s) => s.id === id || s.name === id);
+      if (!station) return sendJson(res, 404, { message: "监测站不存在。" });
+      const analysis = analyzeStationHealth(station);
+      return sendJson(res, 200, { station, analysis });
+    }
+
     if (req.method === "GET" && url.pathname.startsWith("/api/admin/stations/")) {
       const user = requireUser(req, res, ["admin", "ranger"]);
       if (!user) return;
@@ -826,7 +1156,66 @@ async function handleApi(req, res) {
       const user = requireUser(req, res);
       if (!user) return;
       const summary = getStationHealthSummary(data.stations);
-      return sendJson(res, 200, { summary });
+      const analyses = data.stations.map(analyzeStationHealth);
+      const levelCounts = {
+        critical: analyses.filter((a) => a.overall.level === "critical").length,
+        warning: analyses.filter((a) => a.overall.level === "warning").length,
+        fair: analyses.filter((a) => a.overall.level === "fair").length,
+        good: analyses.filter((a) => a.overall.level === "good").length,
+        unknown: analyses.filter((a) => a.overall.level === "unknown").length
+      };
+      const needsAttention = analyses.filter((a) => a.maintenance.needsAttention);
+      const byPriority = {
+        urgent: needsAttention.filter((a) => a.maintenance.priority === "urgent").map((a) => ({ stationId: a.stationId, stationName: a.stationName, score: a.overall.score })),
+        high: needsAttention.filter((a) => a.maintenance.priority === "high").map((a) => ({ stationId: a.stationId, stationName: a.stationName, score: a.overall.score })),
+        medium: needsAttention.filter((a) => a.maintenance.priority === "medium").map((a) => ({ stationId: a.stationId, stationName: a.stationName, score: a.overall.score }))
+      };
+      const avgScore = analyses.length > 0
+        ? Math.round(analyses.reduce((sum, a) => sum + a.overall.score, 0) / analyses.length)
+        : 0;
+      return sendJson(res, 200, {
+        summary,
+        healthOverview: {
+          totalStations: analyses.length,
+          avgHealthScore: avgScore,
+          levelCounts,
+          needsAttentionCount: needsAttention.length,
+          maintenanceByPriority: byPriority,
+          generatedAt: new Date().toISOString()
+        }
+      });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/stations/health-analysis") {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const levelFilter = url.searchParams.get("level");
+      const priorityFilter = url.searchParams.get("priority");
+      let analyses = data.stations.map(analyzeStationHealth);
+      if (levelFilter) {
+        const levels = levelFilter.split(",").map((s) => s.trim()).filter(Boolean);
+        if (levels.length > 0) {
+          analyses = analyses.filter((a) => levels.includes(a.overall.level));
+        }
+      }
+      if (priorityFilter) {
+        const priorities = priorityFilter.split(",").map((s) => s.trim()).filter(Boolean);
+        if (priorities.length > 0) {
+          analyses = analyses.filter((a) => priorities.includes(a.maintenance.priority));
+        }
+      }
+      const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+      analyses.sort((a, b) => {
+        const pa = priorityOrder[a.maintenance.priority] ?? 99;
+        const pb = priorityOrder[b.maintenance.priority] ?? 99;
+        if (pa !== pb) return pa - pb;
+        return a.overall.score - b.overall.score;
+      });
+      return sendJson(res, 200, {
+        total: analyses.length,
+        analyses,
+        generatedAt: new Date().toISOString()
+      });
     }
 
     if (req.method === "GET" && url.pathname === "/api/admin/broadcasts") {
