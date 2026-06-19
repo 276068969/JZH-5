@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>迁徙日报 - 候鸟迁徙监管平台</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <strong>迁徙日报</strong>
+      <span>每日监管态势复盘</span>
+    </div>
+    <nav>
+      <a href="/">监测台</a>
+      <a href="/daily.html" class="active">迁徙日报</a>
+      <a href="/admin.html">后台管理</a>
+      <button class="ghost" id="logoutBtn">退出</button>
+    </nav>
+  </header>
+
+  <main class="shell daily-shell">
+    <section class="panel login-panel daily-login" id="loginPanel">
+      <h2>值班人员登录</h2>
+      <form id="loginForm">
+        <label>用户名 <input name="username" value="admin" autocomplete="username"></label>
+        <label>密码 <input name="password" type="password" value="Admin@2026" autocomplete="current-password"></label>
+        <button type="submit">进入日报</button>
+        <small id="loginMsg">登录后查看当日迁徙监管摘要。</small>
+      </form>
+    </section>
+
+    <section id="reportContent" hidden>
+      <section class="daily-header">
+        <div class="daily-header-left">
+          <h1 class="daily-title">📋 迁徙日报</h1>
+          <div class="daily-date-row">
+            <label>
+              日报日期
+              <input type="date" id="reportDate" />
+            </label>
+            <button id="refreshBtn" class="secondary-btn">🔄 刷新数据</button>
+          </div>
+        </div>
+        <div class="daily-header-right">
+          <div class="overall-status-card" id="overallStatusCard">
+            <span class="status-dot"></span>
+            <span class="status-text" id="overallStatusText">加载中...</span>
+          </div>
+          <div class="report-meta">
+            <div>报告编号：<span id="reportId">-</span></div>
+            <div>生成时间：<span id="generatedAt">-</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="daily-summary-panel">
+        <div class="panel-head">
+          <h2>📝 今日总体态势</h2>
+        </div>
+        <p class="overall-summary-text" id="overallSummary">加载中...</p>
+      </section>
+
+      <section class="key-highlights" id="keyHighlights"></section>
+
+      <section class="daily-grid">
+        <div class="panel daily-panel">
+          <div class="panel-head">
+            <h2>🐦 候鸟过境统计</h2>
+            <span id="countsMeta">累计数据</span>
+          </div>
+          <div class="counts-chart-wrap" id="countsChart"></div>
+          <div class="counts-stats" id="countsStats"></div>
+        </div>
+
+        <div class="panel daily-panel">
+          <div class="panel-head">
+            <h2>📍 迁飞路线概览</h2>
+            <span id="routesMeta">路线状态</span>
+          </div>
+          <div class="routes-stats-summary" id="routesStatsSummary"></div>
+          <div class="daily-routes-list" id="routesList"></div>
+        </div>
+      </section>
+
+      <section class="daily-grid">
+        <div class="panel daily-panel">
+          <div class="panel-head">
+            <h2>🚨 告警事件统计</h2>
+            <a href="/admin.html">去处置</a>
+          </div>
+          <div class="alerts-stats" id="alertsStats"></div>
+          <div class="panel-sub-head">
+            <h3>⚠️ 待处置告警（优先处理）</h3>
+          </div>
+          <div class="stack" id="pendingAlerts"></div>
+        </div>
+
+        <div class="panel daily-panel">
+          <div class="panel-head">
+            <h2>📝 现场观测统计</h2>
+            <span id="obsMeta">当日记录</span>
+          </div>
+          <div class="obs-stats-row" id="obsStatsRow"></div>
+          <div class="obs-top-lists" id="obsTopLists"></div>
+          <div class="panel-sub-head">
+            <h3>🕐 最新观测记录</h3>
+          </div>
+          <div class="stack" id="recentObservations"></div>
+        </div>
+      </section>
+
+      <section class="panel daily-panel station-daily-panel">
+        <div class="panel-head">
+          <h2>📡 监测站健康报告</h2>
+          <span id="stationMeta">站点状态</span>
+        </div>
+        <div class="station-overview-row" id="stationOverviewRow"></div>
+        <div class="station-battery-wrap">
+          <div class="panel-sub-head">
+            <h3>🔋 电量分布</h3>
+          </div>
+          <div class="battery-stats-daily" id="batteryStatsDaily"></div>
+        </div>
+        <div class="station-abnormal-wrap" id="stationAbnormalWrap" hidden>
+          <div class="panel-sub-head">
+            <h3>⚠️ 需关注站点</h3>
+          </div>
+          <div class="abnormal-cards-daily" id="abnormalCards"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="/assets/daily.js"></script>
+</body>
+</html>

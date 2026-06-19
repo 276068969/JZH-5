@@ -338,6 +338,238 @@ function getStationHealthSummary(stations) {
   };
 }
 
+function generateDailyReport(data, dateStr) {
+  const now = new Date();
+  const date = dateStr ? new Date(dateStr) : now;
+  const reportDate = date.toISOString().split("T")[0];
+
+  const dailyCounts = data.dailyCounts || [];
+  const routes = data.routes || [];
+  const alerts = data.alerts || [];
+  const observations = data.observations || [];
+  const stations = data.stations || [];
+
+  const todayStart = new Date(date);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(date);
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const todayObservations = observations.filter((obs) => {
+    const obsDate = new Date(obs.recordedAt);
+    return obsDate >= todayStart && obsDate <= todayEnd;
+  });
+
+  const todayAlerts = alerts.filter((alert) => {
+    const alertDate = new Date(alert.createdAt);
+    return alertDate >= todayStart && alertDate <= todayEnd;
+  });
+
+  const activeAlerts = alerts.filter((a) => a.status !== "resolved");
+  const openAlerts = alerts.filter((a) => a.status === "open");
+  const processingAlerts = alerts.filter((a) => a.status === "processing");
+  const resolvedAlerts = alerts.filter((a) => a.status === "resolved");
+  const highAlerts = alerts.filter((a) => a.level === "高");
+  const mediumAlerts = alerts.filter((a) => a.level === "中");
+  const lowAlerts = alerts.filter((a) => a.level === "低");
+
+  const speciesStats = new Map();
+  const routeStats = new Map();
+  const locationStats = new Map();
+  let totalBirdsToday = 0;
+  let totalObservationsToday = 0;
+
+  for (const obs of todayObservations) {
+    const count = Number(obs.count) || 0;
+    totalBirdsToday += count;
+    totalObservationsToday += 1;
+
+    if (!speciesStats.has(obs.species)) {
+      speciesStats.set(obs.species, { name: obs.species, totalCount: 0, recordCount: 0 });
+    }
+    const sp = speciesStats.get(obs.species);
+    sp.totalCount += count;
+    sp.recordCount += 1;
+
+    if (!routeStats.has(obs.route)) {
+      routeStats.set(obs.route, { name: obs.route, totalCount: 0, recordCount: 0 });
+    }
+    const rt = routeStats.get(obs.route);
+    rt.totalCount += count;
+    rt.recordCount += 1;
+
+    if (!locationStats.has(obs.location)) {
+      locationStats.set(obs.location, { name: obs.location, totalCount: 0, recordCount: 0 });
+    }
+    const loc = locationStats.get(obs.location);
+    loc.totalCount += count;
+    loc.recordCount += 1;
+  }
+
+  const topSpecies = Array.from(speciesStats.values())
+    .sort((a, b) => b.totalCount - a.totalCount)
+    .slice(0, 5);
+  const topRoutes = Array.from(routeStats.values())
+    .sort((a, b) => b.totalCount - a.totalCount)
+    .slice(0, 5);
+  const topLocations = Array.from(locationStats.values())
+    .sort((a, b) => b.totalCount - a.totalCount)
+    .slice(0, 5);
+
+  const routesAnalysis = routes.map(analyzeRouteProgress);
+  const avgProgress = routesAnalysis.length > 0
+    ? Math.round(routesAnalysis.reduce((sum, r) => sum + r.progress.value, 0) / routesAnalysis.length)
+    : 0;
+  const highRiskRoutes = routesAnalysis.filter((r) => r.risk.level === "高");
+  const mediumRiskRoutes = routesAnalysis.filter((r) => r.risk.level === "中");
+  const lowRiskRoutes = routesAnalysis.filter((r) => r.risk.level === "低");
+
+  const stationHealth = getStationHealthSummary(stations);
+  const stationOnlineRate = stationHealth.total > 0
+    ? Math.round((stationHealth.online / stationHealth.total) * 100)
+    : 0;
+
+  const latestCount = dailyCounts.at(-1) || 0;
+  const previousCount = dailyCounts.at(-2) || latestCount;
+  const countDelta = latestCount - previousCount;
+  const countTrend = countDelta > 0 ? "up" : countDelta < 0 ? "down" : "stable";
+  const totalBirdsCumulative = dailyCounts.reduce((sum, c) => sum + Number(c), 0);
+
+  let overallStatus = "normal";
+  let overallStatusText = "整体平稳";
+  let overallSummary = "今日迁徙态势平稳，各项指标正常，按常规巡护计划执行即可。";
+
+  if (highAlerts.length > 0 || highRiskRoutes.length > 0 || stationHealth.offline > 0) {
+    overallStatus = "attention";
+    overallStatusText = "需重点关注";
+    overallSummary = "今日存在需要关注的事项："
+      + (highAlerts.length > 0 ? ` ${highAlerts.length} 条高风险告警未闭环；` : "")
+      + (highRiskRoutes.length > 0 ? ` ${highRiskRoutes.length} 条路线处于高风险状态；` : "")
+      + (stationHealth.offline > 0 ? ` ${stationHealth.offline} 个监测站离线；` : "")
+      + "请值班人员及时处置。";
+  } else if (mediumAlerts.length > 0 || mediumRiskRoutes.length > 0 || stationHealth.warning > 0) {
+    overallStatus = "warning";
+    overallStatusText = "需加强关注";
+    overallSummary = "今日存在中等关注事项："
+      + (mediumAlerts.length > 0 ? ` ${mediumAlerts.length} 条中风险告警；` : "")
+      + (mediumRiskRoutes.length > 0 ? ` ${mediumRiskRoutes.length} 条路线处于中风险；` : "")
+      + (stationHealth.warning > 0 ? ` ${stationHealth.warning} 个监测站告警；` : "")
+      + "建议加强巡护频次。";
+  }
+
+  const keyHighlights = [];
+  keyHighlights.push({
+    icon: "🐦",
+    title: "今日过境候鸟",
+    value: `${latestCount} 只`,
+    trend: countTrend,
+    trendValue: `${countDelta > 0 ? "+" : ""}${countDelta} 只`,
+    description: `较昨日${countTrend === "up" ? "上升" : countTrend === "down" ? "下降" : "持平"}，累计过境 ${totalBirdsCumulative} 只`
+  });
+  keyHighlights.push({
+    icon: "📍",
+    title: "迁飞路线进度",
+    value: `${avgProgress}%`,
+    trend: "stable",
+    trendValue: `共 ${routes.length} 条路线`,
+    description: `${highRiskRoutes.length} 条高风险 · ${mediumRiskRoutes.length} 条中风险 · ${lowRiskRoutes.length} 条低风险`
+  });
+  keyHighlights.push({
+    icon: "🚨",
+    title: "告警事件",
+    value: `${activeAlerts.length} 条待处置`,
+    trend: activeAlerts.length > 0 ? "warning" : "stable",
+    trendValue: `今日新增 ${todayAlerts.length} 条`,
+    description: `高 ${highAlerts.length} · 中 ${mediumAlerts.length} · 低 ${lowAlerts.length} · 已闭环 ${resolvedAlerts.length}`
+  });
+  keyHighlights.push({
+    icon: "📡",
+    title: "监测站在线率",
+    value: `${stationOnlineRate}%`,
+    trend: stationOnlineRate >= 90 ? "stable" : "warning",
+    trendValue: `${stationHealth.online}/${stationHealth.total} 在线`,
+    description: `告警 ${stationHealth.warning} · 离线 ${stationHealth.offline} · 低电量 ${stationHealth.lowBattery}`
+  });
+
+  return {
+    reportId: `RPT-${reportDate}`,
+    reportDate,
+    generatedAt: now.toISOString(),
+    summary: {
+      overallStatus,
+      overallStatusText,
+      overallSummary,
+      keyHighlights
+    },
+    migrationCounts: {
+      dailyCounts,
+      latestCount,
+      previousCount,
+      countDelta,
+      countTrend,
+      totalBirdsToday,
+      totalObservationsToday,
+      totalBirdsCumulative
+    },
+    routeOverview: {
+      totalRoutes: routes.length,
+      avgProgress,
+      highRiskCount: highRiskRoutes.length,
+      mediumRiskCount: mediumRiskRoutes.length,
+      lowRiskCount: lowRiskRoutes.length,
+      routes: routesAnalysis.map((r) => ({
+        routeId: r.routeId,
+        routeName: r.routeName,
+        season: r.season,
+        currentArea: r.currentArea,
+        species: r.species,
+        progress: r.progress,
+        risk: r.risk,
+        summary: r.summary
+      }))
+    },
+    alertOverview: {
+      total: alerts.length,
+      todayNew: todayAlerts.length,
+      active: activeAlerts.length,
+      open: openAlerts.length,
+      processing: processingAlerts.length,
+      resolved: resolvedAlerts.length,
+      high: highAlerts.length,
+      medium: mediumAlerts.length,
+      low: lowAlerts.length,
+      criticalAlerts: activeAlerts
+        .filter((a) => a.level === "高")
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 5),
+      todayAlerts: todayAlerts
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 10),
+      pendingAlerts: activeAlerts
+        .sort((a, b) => {
+          const levelOrder = { "高": 0, "中": 1, "低": 2 };
+          return (levelOrder[a.level] ?? 3) - (levelOrder[b.level] ?? 3);
+        })
+        .slice(0, 10)
+    },
+    observationOverview: {
+      todayTotal: totalObservationsToday,
+      todayBirdCount: totalBirdsToday,
+      topSpecies,
+      topRoutes,
+      topLocations,
+      recentObservations: todayObservations
+        .sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt))
+        .slice(0, 10)
+    },
+    stationOverview: {
+      ...stationHealth,
+      onlineRate: stationOnlineRate,
+      abnormalStations: stationHealth.abnormalStations.slice(0, 10),
+      lowBatteryStations: stationHealth.lowBatteryStations.slice(0, 10)
+    }
+  };
+}
+
 async function handleApi(req, res) {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const data = readStore();
@@ -792,6 +1024,14 @@ async function handleApi(req, res) {
       data.speciesList.splice(index, 1);
       writeStore(data);
       return sendJson(res, 200, { message: "物种已删除。" });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/daily-report") {
+      const user = requireUser(req, res);
+      if (!user) return;
+      const dateStr = url.searchParams.get("date");
+      const report = generateDailyReport(data, dateStr);
+      return sendJson(res, 200, { report });
     }
 
     return sendJson(res, 404, { message: "接口不存在。" });
