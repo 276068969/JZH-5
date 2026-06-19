@@ -540,10 +540,11 @@ function renderAlert(alert) {
   const latestRemark = alert.remark ? alert.remark.length > 60 ? alert.remark.slice(0, 60) + "…" : alert.remark : null;
   const latestHandler = alert.handler || null;
   const latestUpdate = alert.updatedAt ? fmtTime(alert.updatedAt) : null;
-  const riskClass = alert.level === "高" ? "high-risk" : "";
+  const riskClass = alert.level === "高" ? "high-risk" : alert.level === "中" ? "medium-risk" : "low-risk";
+  const statusClass = `status-${alert.status}`;
 
   return `
-    <article class="list-item alert-list-item ${riskClass}">
+    <article class="list-item alert-list-item ${riskClass} ${statusClass}">
       <div class="alert-list-header">
         <strong>${alert.title}</strong>
         <span class="tag ${alert.level === "高" ? "high" : alert.level === "中" ? "medium" : "low"}">${alert.level}风险</span>
@@ -771,8 +772,11 @@ async function loadDashboard() {
     speciesEventsBound = true;
   }
   applyFilters();
+  const statusOrder = { open: 0, processing: 1, resolved: 2 };
   const levelOrder = { "高": 0, "中": 1, "低": 2 };
   const sortedAlerts = alerts.alerts.slice().sort((a, b) => {
+    const statusDiff = (statusOrder[a.status] ?? 3) - (statusOrder[b.status] ?? 3);
+    if (statusDiff !== 0) return statusDiff;
     const levelDiff = (levelOrder[a.level] ?? 3) - (levelOrder[b.level] ?? 3);
     if (levelDiff !== 0) return levelDiff;
     return new Date(b.createdAt) - new Date(a.createdAt);

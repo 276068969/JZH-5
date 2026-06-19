@@ -411,6 +411,8 @@ function renderAlert(alert) {
   const latestUpdate = alert.updatedAt ? fmtTime(alert.updatedAt) : "-";
   const isSaving = state.savingAlerts.has(alert.id);
   const saveStatus = state.alertSaveStatus[alert.id];
+  const levelClass = alert.level === "高" ? "level-high" : alert.level === "中" ? "level-medium" : "level-low";
+  const statusClass = `status-${alert.status}`;
 
   let statusFeedback = "";
   if (isSaving) {
@@ -422,7 +424,7 @@ function renderAlert(alert) {
   }
 
   return `
-    <article class="admin-row alert-row ${isSaving ? "saving" : ""}" data-alert-id="${alert.id}">
+    <article class="admin-row alert-row ${isSaving ? "saving" : ""} ${levelClass} ${statusClass}" data-alert-id="${alert.id}">
       <div class="alert-main">
         <div class="alert-header">
           <strong>${alert.title}</strong>

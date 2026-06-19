@@ -280,8 +280,11 @@ function renderAlertsStats(alertOverview) {
       </div>
     `;
   } else {
-    pendingContainer.innerHTML = alertOverview.pendingAlerts.map((a) => `
-      <article class="list-item alert-list-item ${a.level === "高" ? "high-risk" : ""}">
+    pendingContainer.innerHTML = alertOverview.pendingAlerts.map((a) => {
+      const riskClass = a.level === "高" ? "high-risk" : a.level === "中" ? "medium-risk" : "low-risk";
+      const statusClass = `status-${a.status}`;
+      return `
+      <article class="list-item alert-list-item ${riskClass} ${statusClass}">
         <div class="alert-list-header">
           <strong>${a.title}</strong>
           <span class="tag ${levelClassMap[a.level] || ''}">${a.level}风险</span>
@@ -292,7 +295,7 @@ function renderAlertsStats(alertOverview) {
         </p>
         ${a.remark ? `<p class="alert-remark">📋 ${a.remark.length > 80 ? a.remark.slice(0, 80) + "…" : a.remark}</p>` : ""}
       </article>
-    `).join("");
+    `}).join("");
   }
 }
 
