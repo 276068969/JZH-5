@@ -66,8 +66,11 @@ function parseToken(token) {
     const parsed = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
     const user = demoUsers.find((u) => u.username === parsed.username && u.role === parsed.role) || null;
     if (!user) return { valid: false, expired: false, user: null };
+    if (!parsed.expiresAt) {
+      return { valid: false, expired: true, user: null };
+    }
     const now = Date.now();
-    if (parsed.expiresAt && now > parsed.expiresAt) {
+    if (now > parsed.expiresAt) {
       return { valid: false, expired: true, user: null };
     }
     return { valid: true, expired: false, user };

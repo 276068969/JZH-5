@@ -1,7 +1,15 @@
+const rawToken = localStorage.getItem("mb_token");
+const rawExpiresAt = localStorage.getItem("mb_expires_at");
+const hasLegacyAuth = rawToken && !rawExpiresAt;
+if (hasLegacyAuth) {
+  localStorage.removeItem("mb_token");
+  localStorage.removeItem("mb_user");
+}
+
 const state = {
-  token: localStorage.getItem("mb_token"),
-  user: JSON.parse(localStorage.getItem("mb_user") || "null"),
-  expiresAt: Number(localStorage.getItem("mb_expires_at") || 0),
+  token: hasLegacyAuth ? null : rawToken,
+  user: hasLegacyAuth ? null : JSON.parse(localStorage.getItem("mb_user") || "null"),
+  expiresAt: hasLegacyAuth ? 0 : Number(rawExpiresAt || 0),
   expandedAlerts: new Set(),
   expandedStations: new Set(),
   stationDetails: {},
