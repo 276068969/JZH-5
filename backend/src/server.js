@@ -371,6 +371,9 @@ function generateDailyReport(data, dateStr) {
   const highAlerts = alerts.filter((a) => a.level === "高");
   const mediumAlerts = alerts.filter((a) => a.level === "中");
   const lowAlerts = alerts.filter((a) => a.level === "低");
+  const activeHighAlerts = activeAlerts.filter((a) => a.level === "高");
+  const activeMediumAlerts = activeAlerts.filter((a) => a.level === "中");
+  const activeLowAlerts = activeAlerts.filter((a) => a.level === "低");
 
   const speciesStats = new Map();
   const routeStats = new Map();
@@ -428,29 +431,38 @@ function generateDailyReport(data, dateStr) {
     ? Math.round((stationHealth.online / stationHealth.total) * 100)
     : 0;
 
-  const latestCount = dailyCounts.at(-1) || 0;
-  const previousCount = dailyCounts.at(-2) || latestCount;
+  const todayDateOnly = new Date();
+  todayDateOnly.setHours(0, 0, 0, 0);
+  const reportDateOnly = new Date(date);
+  reportDateOnly.setHours(0, 0, 0, 0);
+  const dateDiffDays = Math.round((reportDateOnly.getTime() - todayDateOnly.getTime()) / (1000 * 60 * 60 * 24));
+  const lastIndex = dailyCounts.length - 1;
+  const reportCountIndex = Math.max(0, Math.min(lastIndex, lastIndex + dateDiffDays));
+  const prevCountIndex = Math.max(0, reportCountIndex - 1);
+
+  const latestCount = dailyCounts[reportCountIndex] || 0;
+  const previousCount = dailyCounts[prevCountIndex] || latestCount;
   const countDelta = latestCount - previousCount;
   const countTrend = countDelta > 0 ? "up" : countDelta < 0 ? "down" : "stable";
-  const totalBirdsCumulative = dailyCounts.reduce((sum, c) => sum + Number(c), 0);
+  const totalBirdsCumulative = dailyCounts.slice(0, reportCountIndex + 1).reduce((sum, c) => sum + Number(c), 0);
 
   let overallStatus = "normal";
   let overallStatusText = "整体平稳";
   let overallSummary = "今日迁徙态势平稳，各项指标正常，按常规巡护计划执行即可。";
 
-  if (highAlerts.length > 0 || highRiskRoutes.length > 0 || stationHealth.offline > 0) {
+  if (activeHighAlerts.length > 0 || highRiskRoutes.length > 0 || stationHealth.offline > 0) {
     overallStatus = "attention";
     overallStatusText = "需重点关注";
     overallSummary = "今日存在需要关注的事项："
-      + (highAlerts.length > 0 ? ` ${highAlerts.length} 条高风险告警未闭环；` : "")
+      + (activeHighAlerts.length > 0 ? ` ${activeHighAlerts.length} 条高风险告警未闭环；` : "")
       + (highRiskRoutes.length > 0 ? ` ${highRiskRoutes.length} 条路线处于高风险状态；` : "")
       + (stationHealth.offline > 0 ? ` ${stationHealth.offline} 个监测站离线；` : "")
       + "请值班人员及时处置。";
-  } else if (mediumAlerts.length > 0 || mediumRiskRoutes.length > 0 || stationHealth.warning > 0) {
+  } else if (activeMediumAlerts.length > 0 || mediumRiskRoutes.length > 0 || stationHealth.warning > 0) {
     overallStatus = "warning";
     overallStatusText = "需加强关注";
     overallSummary = "今日存在中等关注事项："
-      + (mediumAlerts.length > 0 ? ` ${mediumAlerts.length} 条中风险告警；` : "")
+      + (activeMediumAlerts.length > 0 ? ` ${activeMediumAlerts.length} 条中风险告警未闭环；` : "")
       + (mediumRiskRoutes.length > 0 ? ` ${mediumRiskRoutes.length} 条路线处于中风险；` : "")
       + (stationHealth.warning > 0 ? ` ${stationHealth.warning} 个监测站告警；` : "")
       + "建议加强巡护频次。";
@@ -477,9 +489,9 @@ function generateDailyReport(data, dateStr) {
     icon: "🚨",
     title: "告警事件",
     value: `${activeAlerts.length} 条待处置`,
-    trend: activeAlerts.length > 0 ? "warning" : "stable",
+    trend: activeHighAlerts.length > 0 ? "warning" : "stable",
     trendValue: `今日新增 ${todayAlerts.length} 条`,
-    description: `高 ${highAlerts.length} · 中 ${mediumAlerts.length} · 低 ${lowAlerts.length} · 已闭环 ${resolvedAlerts.length}`
+    description: `高未闭环 ${activeHighAlerts.length} · 中未闭环 ${activeMediumAlerts.length} · 低未闭环 ${activeLowAlerts.length} · 已闭环 ${resolvedAlerts.length}`
   });
   keyHighlights.push({
     icon: "📡",
@@ -501,14 +513,15 @@ function generateDailyReport(data, dateStr) {
       keyHighlights
     },
     migrationCounts: {
-      dailyCounts,
+      dailyCounts: dailyCounts.slice(0, reportCountIndex + 1),
       latestCount,
       previousCount,
       countDelta,
       countTrend,
       totalBirdsToday,
       totalObservationsToday,
-      totalBirdsCumulative
+      totalBirdsCumulative,
+      reportCountIndex
     },
     routeOverview: {
       totalRoutes: routes.length,
@@ -537,6 +550,9 @@ function generateDailyReport(data, dateStr) {
       high: highAlerts.length,
       medium: mediumAlerts.length,
       low: lowAlerts.length,
+      highActive: activeHighAlerts.length,
+      mediumActive: activeMediumAlerts.length,
+      lowActive: activeLowAlerts.length,
       criticalAlerts: activeAlerts
         .filter((a) => a.level === "高")
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))

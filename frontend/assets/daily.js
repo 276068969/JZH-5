@@ -257,15 +257,15 @@ function renderAlertsStats(alertOverview) {
     <div class="alert-level-row">
       <div class="alert-level-item high">
         <span class="dot high"></span>
-        <span>高风险 ${alertOverview.high}</span>
+        <span>高风险 ${alertOverview.highActive ?? alertOverview.high} / ${alertOverview.high}</span>
       </div>
       <div class="alert-level-item medium">
         <span class="dot medium"></span>
-        <span>中风险 ${alertOverview.medium}</span>
+        <span>中风险 ${alertOverview.mediumActive ?? alertOverview.medium} / ${alertOverview.medium}</span>
       </div>
       <div class="alert-level-item low">
         <span class="dot low"></span>
-        <span>低风险 ${alertOverview.low}</span>
+        <span>低风险 ${alertOverview.lowActive ?? alertOverview.low} / ${alertOverview.low}</span>
       </div>
     </div>
   `;
