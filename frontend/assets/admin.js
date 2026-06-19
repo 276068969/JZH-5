@@ -1,6 +1,7 @@
 const state = {
   token: localStorage.getItem("mb_token"),
   user: JSON.parse(localStorage.getItem("mb_user") || "null"),
+  expiresAt: Number(localStorage.getItem("mb_expires_at") || 0),
   expandedAlerts: new Set(),
   expandedStations: new Set(),
   stationDetails: {},
@@ -22,7 +23,32 @@ const state = {
 
 const $ = (selector) => document.querySelector(selector);
 
+function clearAuth() {
+  state.token = null;
+  state.user = null;
+  state.expiresAt = 0;
+  localStorage.removeItem("mb_token");
+  localStorage.removeItem("mb_user");
+  localStorage.removeItem("mb_expires_at");
+}
+
+function isTokenExpired() {
+  if (!state.expiresAt) return false;
+  return Date.now() > state.expiresAt;
+}
+
+function showTokenExpiredAndReload(message) {
+  clearAuth();
+  const msg = message || "登录凭证已过期，请重新登录。";
+  alert(msg);
+  location.reload();
+}
+
 async function api(path, options = {}) {
+  if (state.token && isTokenExpired()) {
+    showTokenExpiredAndReload();
+    return;
+  }
   const response = await fetch(path, {
     ...options,
     headers: {
@@ -33,6 +59,10 @@ async function api(path, options = {}) {
   });
   const data = await response.json();
   if (!response.ok) {
+    if (response.status === 401 && data.code === "TOKEN_EXPIRED") {
+      showTokenExpiredAndReload(data.message);
+      return;
+    }
     const error = new Error(data.message || "请求失败");
     error.errors = data.errors;
     throw error;
@@ -647,8 +677,12 @@ $("#loginForm").addEventListener("submit", async (event) => {
     });
     state.token = result.token;
     state.user = result.user;
+    state.expiresAt = result.expiresAt || 0;
     localStorage.setItem("mb_token", result.token);
     localStorage.setItem("mb_user", JSON.stringify(result.user));
+    if (result.expiresAt) {
+      localStorage.setItem("mb_expires_at", String(result.expiresAt));
+    }
     $("#loginMsg").textContent = `${result.user.name}，后台已进入。`;
     await loadAdmin();
   } catch (error) {
@@ -1079,8 +1113,7 @@ $("#broadcastForm").addEventListener("submit", async (event) => {
 });
 
 $("#logoutBtn").addEventListener("click", () => {
-  localStorage.removeItem("mb_token");
-  localStorage.removeItem("mb_user");
+  clearAuth();
   location.reload();
 });
 

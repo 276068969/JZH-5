@@ -5,6 +5,7 @@ const { nextId, readStore, writeStore } = require("./store");
 
 const PORT = Number(process.env.PORT || 3000);
 const frontendDir = path.resolve(__dirname, "..", "..", "frontend");
+const TOKEN_TTL_MS = 2 * 60 * 60 * 1000;
 const demoUsers = [
   { username: "admin", password: "Admin@2026", role: "admin", name: "监管中心管理员" },
   { username: "ranger", password: "Ranger@2026", role: "ranger", name: "保护站巡护员" },
@@ -48,37 +49,61 @@ function readBody(req) {
 }
 
 function makeToken(user) {
+  const issuedAt = Date.now();
+  const expiresAt = issuedAt + TOKEN_TTL_MS;
   return Buffer.from(JSON.stringify({
     username: user.username,
     role: user.role,
     name: user.name,
-    issuedAt: Date.now()
+    issuedAt,
+    expiresAt
   })).toString("base64url");
+}
+
+function parseToken(token) {
+  if (!token) return { valid: false, expired: false, user: null };
+  try {
+    const parsed = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
+    const user = demoUsers.find((u) => u.username === parsed.username && u.role === parsed.role) || null;
+    if (!user) return { valid: false, expired: false, user: null };
+    const now = Date.now();
+    if (parsed.expiresAt && now > parsed.expiresAt) {
+      return { valid: false, expired: true, user: null };
+    }
+    return { valid: true, expired: false, user };
+  } catch {
+    return { valid: false, expired: false, user: null };
+  }
 }
 
 function currentUser(req) {
   const auth = req.headers.authorization || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  if (!token) return null;
-  try {
-    const parsed = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
-    return demoUsers.find((user) => user.username === parsed.username && user.role === parsed.role) || null;
-  } catch {
-    return null;
-  }
+  const result = parseToken(token);
+  return result.user;
+}
+
+function currentUserWithStatus(req) {
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  return parseToken(token);
 }
 
 function requireUser(req, res, roles = []) {
-  const user = currentUser(req);
-  if (!user) {
-    sendJson(res, 401, { message: "请先登录后再访问。" });
+  const status = currentUserWithStatus(req);
+  if (status.expired) {
+    sendJson(res, 401, { message: "登录凭证已过期，请重新登录。", code: "TOKEN_EXPIRED" });
     return null;
   }
-  if (roles.length && !roles.includes(user.role)) {
+  if (!status.user) {
+    sendJson(res, 401, { message: "请先登录后再访问。", code: "TOKEN_INVALID" });
+    return null;
+  }
+  if (roles.length && !roles.includes(status.user.role)) {
     sendJson(res, 403, { message: "当前账号没有该操作权限。" });
     return null;
   }
-  return user;
+  return status.user;
 }
 
 function routeFile(urlPath) {
@@ -319,8 +344,12 @@ async function handleApi(req, res) {
       const body = await readBody(req);
       const user = demoUsers.find((item) => item.username === body.username && item.password === body.password);
       if (!user) return sendJson(res, 401, { message: "账号或密码错误。" });
+      const token = makeToken(user);
+      const parsed = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
       return sendJson(res, 200, {
-        token: makeToken(user),
+        token,
+        expiresAt: parsed.expiresAt,
+        expiresIn: TOKEN_TTL_MS,
         user: { username: user.username, role: user.role, name: user.name }
       });
     }
